@@ -1,6 +1,7 @@
 const Main = imports.ui.main;
 const PopupMenu = imports.ui.popupMenu;
 const Ornament = imports.ui.popupMenu.Ornament;
+const Util = imports.misc.util;
 
 function init() {}
 
@@ -15,6 +16,7 @@ function enable() {
     this.battery.connect('activate', (item, event) => {
         global.log(event);
         this.reset_ornament();
+        this.set_profile("battery");
         item.setOrnament(Ornament.DOT);
     });
     this.powerMenu.addMenuItem(this.battery, 0);
@@ -22,6 +24,7 @@ function enable() {
     this.balanced = new PopupMenu.PopupMenuItem("Balanced");
     this.balanced.connect('activate', (item, event) => {
         this.reset_ornament();
+        this.set_profile("balanced");
         item.setOrnament(Ornament.DOT);
     });
     this.powerMenu.addMenuItem(this.balanced, 0);
@@ -29,12 +32,17 @@ function enable() {
     this.performance = new PopupMenu.PopupMenuItem("High Performance");
     this.performance.connect('activate', (item, event) => {
         this.reset_ornament();
+        this.set_profile("performance");
         item.setOrnament(Ornament.DOT);
     });
     this.powerMenu.addMenuItem(this.performance, 0);
     
     this.reset_ornament();
     this.balanced.setOrnament(Ornament.DOT);
+}
+
+function set_profile(profile) {
+    Util.trySpawn(["system76-power", profile]);
 }
 
 function reset_ornament() {
