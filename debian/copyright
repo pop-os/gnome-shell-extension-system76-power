@@ -1,0 +1,7 @@
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: gnome-shell-extension-system76-power
+Source: https://github.com/system76/gnome-shell-extension-system76-power
+
+Files: *
+Copyright: 2017 System76
+License: MIT

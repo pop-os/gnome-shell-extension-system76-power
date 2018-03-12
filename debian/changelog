@@ -1,0 +1,5 @@
+gnome-shell-extension-system76-power (0.1.0) artful; urgency=medium
+
+  * Initial release.
+
+ -- Jeremy Soller <jeremy@system76.com>  Mon, 12 Mar 2018 15:20:24 -0600
