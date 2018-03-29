@@ -7,27 +7,44 @@ const Util = imports.misc.util;
 function init() {}
 
 function enable() {
-
     this.powerMenu = Main.panel.statusArea['aggregateMenu']._power._item.menu;
 
     this.graphics_separator = new PopupMenu.PopupSeparatorMenuItem();
     this.powerMenu.addMenuItem(this.graphics_separator, 0);
 
     this.intel = new PopupMenu.PopupMenuItem("Intel");
+    this.intel.setting = false;
     this.intel.connect('activate', (item, event) => {
         global.log(event);
-        this.reset_graphics_ornament();
-        this.set_graphics("intel");
-        item.setOrnament(Ornament.DOT);
+        if (!item.setting) {
+            this.reset_graphics_ornament();
+            item.setting = true;
+            this.set_graphics("intel", function(pid, status) {
+                GLib.spawn_close_pid(pid);
+                item.setting = false;
+                if (status == 0) {
+                    item.setOrnament(Ornament.DOT);
+                }
+            });
+        }
     });
     this.powerMenu.addMenuItem(this.intel, 0);
 
     this.nvidia = new PopupMenu.PopupMenuItem("NVIDIA");
+    this.nvidia.setting = false;
     this.nvidia.connect('activate', (item, event) => {
         global.log(event);
-        this.reset_graphics_ornament();
-        this.set_graphics("nvidia");
-        item.setOrnament(Ornament.DOT);
+        if (!item.setting) {
+            this.reset_graphics_ornament();
+            item.setting = true;
+            this.set_graphics("nvidia", function(pid, status) {
+                GLib.spawn_close_pid(pid);
+                item.setting = false;
+                if (status == 0) {
+                    item.setOrnament(Ornament.DOT);
+                }
+            });
+        }
     });
     this.powerMenu.addMenuItem(this.nvidia, 0);
 
@@ -86,8 +103,20 @@ function get_graphics() {
     return String(stdout).trim();
 }
 
-function set_graphics(graphics) {
-    //TODO Util.trySpawn(["system76-power", "graphics", graphics]);
+function set_graphics(graphics, callback) {
+    var [res, child_pid] = GLib.spawn_async(
+        null,
+        ["pkexec", "system76-power", "graphics", graphics],
+        null,
+        GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
+        null
+    );
+
+    GLib.child_watch_add(
+        null,
+        child_pid,
+        callback,
+    );
 }
 
 function reset_graphics_ornament() {
