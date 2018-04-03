@@ -12,7 +12,7 @@ function enable() {
     this.graphics_separator = new PopupMenu.PopupSeparatorMenuItem();
     this.powerMenu.addMenuItem(this.graphics_separator, 0);
 
-    this.intel = new PopupMenu.PopupMenuItem("Intel");
+    this.intel = new PopupMenu.PopupMenuItem("Intel Graphics");
     this.intel.setting = false;
     this.intel.connect('activate', (item, event) => {
         global.log(event);
@@ -30,7 +30,7 @@ function enable() {
     });
     this.powerMenu.addMenuItem(this.intel, 0);
 
-    this.nvidia = new PopupMenu.PopupMenuItem("NVIDIA");
+    this.nvidia = new PopupMenu.PopupMenuItem("NVIDIA Graphics");
     this.nvidia.setting = false;
     this.nvidia.connect('activate', (item, event) => {
         global.log(event);
