@@ -169,7 +169,7 @@ function setting_dialog(text) {
 }
 
 function reboot(name) {
-    Util.trySpawn(["gnome-session-quit", "--reboot", "--no-prompt"]);
+    Util.trySpawn(["gnome-session-quit", "--reboot"]);
 }
 
 function reset_graphics_ornament() {
