@@ -1,8 +1,13 @@
+const Clutter = imports.gi.Clutter;
 const GLib = imports.gi.GLib;
+const St = imports.gi.St;
+
+const Util = imports.misc.util;
+
 const Main = imports.ui.main;
+const ModalDialog = imports.ui.modalDialog;
 const PopupMenu = imports.ui.popupMenu;
 const Ornament = imports.ui.popupMenu.Ornament;
-const Util = imports.misc.util;
 
 function init() {}
 
@@ -18,10 +23,12 @@ function enable() {
         global.log(event);
         if (!item.setting) {
             this.reset_graphics_ornament();
-            item.setting = true;
+            item.setting = this.setting_dialog();
+            item.setting.open();
             var reboot = this.reboot;
             this.set_graphics("intel", function(pid, status) {
                 GLib.spawn_close_pid(pid);
+                item.setting.close();
                 item.setting = false;
                 if (status == 0) {
                     reboot();
@@ -37,10 +44,12 @@ function enable() {
         global.log(event);
         if (!item.setting) {
             this.reset_graphics_ornament();
-            item.setting = true;
+            item.setting = this.setting_dialog();
+            item.setting.open();
             var reboot = this.reboot;
             this.set_graphics("nvidia", function(pid, status) {
                 GLib.spawn_close_pid(pid);
+                item.setting.close();
                 item.setting = false;
                 if (status == 0) {
                     reboot();
@@ -119,6 +128,31 @@ function set_graphics(graphics, callback) {
         child_pid,
         callback,
     );
+}
+
+function setting_dialog() {
+    var dialog = new ModalDialog.ModalDialog({
+        styleClass: "run-dialog"
+    });
+
+    let label = new St.Label({
+        style_class: "run-dialog-label",
+        text: "Switching graphics mode..."
+    });
+
+    dialog.contentLayout.add(label, {
+        x_fill: false,
+        x_align: St.Align.START,
+        y_align: St.Align.START
+    });
+
+    dialog.setButtons([{
+        action: dialog.close.bind(dialog),
+        label: "Close",
+        key: Clutter.Escape
+    }]);
+
+    return dialog;
 }
 
 function reboot() {
