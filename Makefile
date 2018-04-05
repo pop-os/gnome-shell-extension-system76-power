@@ -27,5 +27,8 @@ install: all
 	mkdir -p $(INSTALLBASE)/$(INSTALLNAME)
 	cp -r _build/* $(INSTALLBASE)/$(INSTALLNAME)/
 
+uninstall:
+	rm -rf $(INSTALLBASE)/$(INSTALLNAME)
+
 zip-file: all
 	cd _build && zip -qr "../$(UUID)$(VSTRING).zip" .

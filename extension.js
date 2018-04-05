@@ -106,7 +106,7 @@ function get_graphics() {
 function set_graphics(graphics, callback) {
     var [res, child_pid] = GLib.spawn_async(
         null,
-        ["pkexec", "system76-power", "graphics", graphics],
+        ["system76-power", "graphics", graphics],
         null,
         GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
         null
