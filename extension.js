@@ -19,11 +19,12 @@ function enable() {
         if (!item.setting) {
             this.reset_graphics_ornament();
             item.setting = true;
+            var reboot = this.reboot;
             this.set_graphics("intel", function(pid, status) {
                 GLib.spawn_close_pid(pid);
                 item.setting = false;
                 if (status == 0) {
-                    item.setOrnament(Ornament.DOT);
+                    reboot();
                 }
             });
         }
@@ -37,11 +38,12 @@ function enable() {
         if (!item.setting) {
             this.reset_graphics_ornament();
             item.setting = true;
+            var reboot = this.reboot;
             this.set_graphics("nvidia", function(pid, status) {
                 GLib.spawn_close_pid(pid);
                 item.setting = false;
                 if (status == 0) {
-                    item.setOrnament(Ornament.DOT);
+                    reboot();
                 }
             });
         }
@@ -106,7 +108,7 @@ function get_graphics() {
 function set_graphics(graphics, callback) {
     var [res, child_pid] = GLib.spawn_async(
         null,
-        ["system76-power", "graphics", graphics],
+        ["pkexec", "system76-power", "graphics", graphics],
         null,
         GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
         null
@@ -117,6 +119,10 @@ function set_graphics(graphics, callback) {
         child_pid,
         callback,
     );
+}
+
+function reboot() {
+    Util.trySpawn(["gnome-session-quit", "--reboot"]);
 }
 
 function reset_graphics_ornament() {
