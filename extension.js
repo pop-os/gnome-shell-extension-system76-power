@@ -1,5 +1,5 @@
 const Clutter = imports.gi.Clutter;
-const GLib = imports.gi.GLib;
+const Gio = imports.gi.Gio;
 const St = imports.gi.St;
 
 const Util = imports.misc.util;
@@ -9,29 +9,60 @@ const ModalDialog = imports.ui.modalDialog;
 const PopupMenu = imports.ui.popupMenu;
 const Ornament = imports.ui.popupMenu.Ornament;
 
+const PowerDaemon = Gio.DBusProxy.makeProxyWrapper(
+'<node>\
+  <interface name="com.system76.PowerDaemon">\
+    <method name="Balanced"/>\
+    <method name="Battery"/>\
+    <method name="GetGraphics">\
+      <arg name="vendor" type="s" direction="out"/>\
+    </method>\
+    <method name="Performance"/>\
+    <method name="SetGraphics">\
+      <arg name="vendor" type="s" direction="in"/>\
+    </method>\
+  </interface>\
+</node>'
+);
+
 function init() {}
 
 function enable() {
+    this.bus = new PowerDaemon(Gio.DBus.system, 'com.system76.PowerDaemon', '/com/system76/PowerDaemon');
+
     this.powerMenu = Main.panel.statusArea['aggregateMenu']._power._item.menu;
 
-    this.graphics_separator = new PopupMenu.PopupSeparatorMenuItem();
-    this.powerMenu.addMenuItem(this.graphics_separator, 0);
+    try {
+        var graphics = this.bus.GetGraphicsSync();
 
-    var intel_name = "Intel Graphics";
-    this.intel = new PopupMenu.PopupMenuItem(intel_name);
-    this.intel.setting = false;
-    this.intel.connect('activate', (item, event) => {
-        this.graphics_activate(item, intel_name, "intel");
-    });
-    this.powerMenu.addMenuItem(this.intel, 0);
+        this.graphics_separator = new PopupMenu.PopupSeparatorMenuItem();
+        this.powerMenu.addMenuItem(this.graphics_separator, 0);
 
-    var nvidia_name = "NVIDIA Graphics";
-    this.nvidia = new PopupMenu.PopupMenuItem(nvidia_name);
-    this.nvidia.setting = false;
-    this.nvidia.connect('activate', (item, event) => {
-        this.graphics_activate(item, nvidia_name, "nvidia");
-    });
-    this.powerMenu.addMenuItem(this.nvidia, 0);
+        var intel_name = "Intel Graphics";
+        this.intel = new PopupMenu.PopupMenuItem(intel_name);
+        this.intel.setting = false;
+        this.intel.connect('activate', (item, event) => {
+            this.graphics_activate(item, intel_name, "intel");
+        });
+        this.powerMenu.addMenuItem(this.intel, 0);
+
+        var nvidia_name = "NVIDIA Graphics";
+        this.nvidia = new PopupMenu.PopupMenuItem(nvidia_name);
+        this.nvidia.setting = false;
+        this.nvidia.connect('activate', (item, event) => {
+            this.graphics_activate(item, nvidia_name, "nvidia");
+        });
+        this.powerMenu.addMenuItem(this.nvidia, 0);
+
+        this.reset_graphics_ornament();
+        if (graphics === "intel") {
+            this.intel.setOrnament(Ornament.DOT);
+        } else if (graphics === "nvidia") {
+            this.nvidia.setOrnament(Ornament.DOT);
+        }
+    } catch (error) {
+        global.log(error);
+    }
 
     this.profile_separator = new PopupMenu.PopupSeparatorMenuItem();
     this.powerMenu.addMenuItem(this.profile_separator, 0);
@@ -40,34 +71,29 @@ function enable() {
     this.battery.connect('activate', (item, event) => {
         global.log(event);
         this.reset_profile_ornament();
-        this.set_profile("battery");
-        item.setOrnament(Ornament.DOT);
+        this.bus.BatteryRemote(function() {
+            item.setOrnament(Ornament.DOT);
+        });
     });
     this.powerMenu.addMenuItem(this.battery, 0);
 
     this.balanced = new PopupMenu.PopupMenuItem("Balanced");
     this.balanced.connect('activate', (item, event) => {
         this.reset_profile_ornament();
-        this.set_profile("balanced");
-        item.setOrnament(Ornament.DOT);
+        this.bus.BalancedRemote(function() {
+            item.setOrnament(Ornament.DOT);
+        });
     });
     this.powerMenu.addMenuItem(this.balanced, 0);
 
     this.performance = new PopupMenu.PopupMenuItem("High Performance");
     this.performance.connect('activate', (item, event) => {
         this.reset_profile_ornament();
-        this.set_profile("performance");
-        item.setOrnament(Ornament.DOT);
+        this.bus.PerformanceRemote(function() {
+            item.setOrnament(Ornament.DOT);
+        });
     });
     this.powerMenu.addMenuItem(this.performance, 0);
-
-    this.reset_graphics_ornament();
-    var graphics = this.get_graphics();
-    if (graphics === "intel") {
-        this.intel.setOrnament(Ornament.DOT);
-    } else if (graphics === "nvidia") {
-        this.nvidia.setOrnament(Ornament.DOT);
-    }
 
     this.reset_profile_ornament();
     this.balanced.setOrnament(Ornament.DOT);
@@ -81,12 +107,10 @@ function graphics_activate(item, name, vendor) {
         let dialog = extension.setting_dialog("Switching to " + name + " on next reboot...");
         dialog.open();
 
-        extension.set_graphics(vendor, function(pid, status) {
-            GLib.spawn_close_pid(pid);
-
+        extension.bus.SetGraphicsRemote(vendor, function(result, error) {
             item.setting = false;
 
-            if (status == 0) {
+            if (error == null) {
                 dialog.label.set_text("Reboot to use " + name);
 
                 dialog.setButtons([{
@@ -104,6 +128,8 @@ function graphics_activate(item, name, vendor) {
                     key: Clutter.Enter
                 }]);
             } else {
+                global.log(error);
+
                 dialog.label.set_text("Failed to switch to " + name);
 
                 dialog.setButtons([{
@@ -116,37 +142,6 @@ function graphics_activate(item, name, vendor) {
             }
         });
     }
-}
-
-function get_graphics() {
-    var [res, stdout, stderr, status] = GLib.spawn_sync(
-        null,
-        ["system76-power", "graphics"],
-        null,
-        GLib.SpawnFlags.SEARCH_PATH,
-        null,
-        null
-    );
-
-    global.log(res, stdout, stderr, status)
-
-    return String(stdout).trim();
-}
-
-function set_graphics(graphics, callback) {
-    var [res, child_pid] = GLib.spawn_async(
-        null,
-        ["pkexec", "system76-power", "graphics", graphics],
-        null,
-        GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
-        null
-    );
-
-    GLib.child_watch_add(
-        null,
-        child_pid,
-        callback,
-    );
 }
 
 function setting_dialog(text) {
@@ -177,10 +172,6 @@ function reset_graphics_ornament() {
     this.intel.setOrnament(Ornament.NONE);
 }
 
-function set_profile(profile) {
-    Util.trySpawn(["system76-power", profile]);
-}
-
 function reset_profile_ornament() {
     this.performance.setOrnament(Ornament.NONE);
     this.balanced.setOrnament(Ornament.NONE);
@@ -190,36 +181,41 @@ function reset_profile_ornament() {
 function disable() {
     if (this.performance) {
         this.performance.destroy();
-        this.performance = 0;
+        this.performance = null;
     }
 
     if (this.balanced) {
         this.balanced.destroy();
-        this.balanced = 0;
+        this.balanced = null;
     }
 
     if (this.battery) {
         this.battery.destroy();
-        this.battery = 0;
+        this.battery = null;
     }
 
     if (this.profile_separator) {
         this.profile_separator.destroy();
-        this.profile_separator = 0;
+        this.profile_separator = null;
     }
 
     if (this.nvidia) {
         this.nvidia.destroy();
-        this.nvidia = 0;
+        this.nvidia = null;
     }
 
     if (this.intel) {
         this.intel.destroy();
-        this.intel = 0;
+        this.intel = null;
     }
 
     if (this.graphics_separator) {
         this.graphics_separator.destroy();
-        this.graphics_separator = 0;
+        this.graphics_separator = null;
+    }
+
+    if (this.bus) {
+        this.bus.destroy();
+        this.bus = null;
     }
 }
