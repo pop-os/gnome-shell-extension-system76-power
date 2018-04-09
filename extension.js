@@ -55,9 +55,9 @@ function enable() {
         this.powerMenu.addMenuItem(this.nvidia, 0);
 
         this.reset_graphics_ornament();
-        if (graphics === "intel") {
+        if (graphics == "intel") {
             this.intel.setOrnament(Ornament.DOT);
-        } else if (graphics === "nvidia") {
+        } else if (graphics == "nvidia") {
             this.nvidia.setOrnament(Ornament.DOT);
         }
     } catch (error) {
