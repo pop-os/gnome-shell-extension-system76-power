@@ -215,7 +215,6 @@ function disable() {
     }
 
     if (this.bus) {
-        this.bus.destroy();
         this.bus = null;
     }
 }
