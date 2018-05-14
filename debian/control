@@ -11,6 +11,6 @@ Package: gnome-shell-extension-system76-power
 Architecture: all
 Depends:
     gnome-shell (>= 3.26.1),
-    system76-power,
+    system76-power (>= 0.1.1),
     ${misc:Depends}
 Description: Gnome-shell extension for System76 Power Management

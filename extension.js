@@ -12,15 +12,22 @@ const Ornament = imports.ui.popupMenu.Ornament;
 const PowerDaemon = Gio.DBusProxy.makeProxyWrapper(
 '<node>\
   <interface name="com.system76.PowerDaemon">\
+    <method name="Performance"/>\
     <method name="Balanced"/>\
     <method name="Battery"/>\
     <method name="GetGraphics">\
       <arg name="vendor" type="s" direction="out"/>\
     </method>\
-    <method name="Performance"/>\
     <method name="SetGraphics">\
       <arg name="vendor" type="s" direction="in"/>\
     </method>\
+    <method name="GetGraphicsPower">\
+      <arg name="power" type="b" direction="out"/>\
+    </method>\
+    <method name="SetGraphicsPower">\
+      <arg name="power" type="b" direction="in"/>\
+    </method>\
+    <method name="AutoGraphicsPower"/>\
   </interface>\
 </node>'
 );
@@ -29,6 +36,12 @@ function init() {}
 
 function enable() {
     this.bus = new PowerDaemon(Gio.DBus.system, 'com.system76.PowerDaemon', '/com/system76/PowerDaemon');
+
+    try {
+        this.bus.AutoGraphicsPowerSync();
+    } catch (error) {
+        global.log(error);
+    }
 
     this.powerMenu = Main.panel.statusArea['aggregateMenu']._power._item.menu;
 
