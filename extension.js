@@ -31,7 +31,7 @@ function enable() {
     this.bus = new PowerDaemon(Gio.DBus.system, 'com.system76.PowerDaemon', '/com/system76/PowerDaemon');
 
     try {
-        this.bus.AutoGraphicsPowerSync()
+        this.bus.AutoGraphicsPowerSync();
     } catch (error) {
         global.log(error);
     }
