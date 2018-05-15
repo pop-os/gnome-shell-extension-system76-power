@@ -28,6 +28,9 @@ const PowerDaemon = Gio.DBusProxy.makeProxyWrapper(
       <arg name="power" type="b" direction="in"/>\
     </method>\
     <method name="AutoGraphicsPower"/>\
+    <signal name="HotPlugDetect">\
+      <arg name="port" type="t"/>\
+    </signal>\
   </interface>\
 </node>'
 );
@@ -67,6 +70,14 @@ function enable() {
         } else if (graphics == "nvidia") {
             this.nvidia.setOrnament(Ornament.DOT);
         }
+
+        var extension = this;
+        this.bus.connectSignal("HotPlugDetect", function(proxy) {
+            var graphics = proxy.GetGraphicsSync();
+            if (graphics != "nvidia") {
+                extension.hotplug(extension.nvidia, nvidia_name, "nvidia");
+            }
+        });
     } catch (error) {
         global.log(error);
     }
@@ -104,6 +115,28 @@ function enable() {
 
     this.reset_profile_ornament();
     this.balanced.setOrnament(Ornament.DOT);
+}
+
+function hotplug(item, name, vendor) {
+    var extension = this;
+
+    let dialog = extension.setting_dialog("Switch to " + name + " to use external displays");
+    dialog.open();
+
+    dialog.setButtons([{
+        action: function() {
+            dialog.close();
+        },
+        label: "Close",
+        key: Clutter.Escape
+    }, {
+        action: function() {
+            dialog.close();
+            extension.graphics_activate(item, name, vendor);
+        },
+        label: "Switch",
+        key: Clutter.Enter
+    }]);
 }
 
 function graphics_activate(item, name, vendor) {
