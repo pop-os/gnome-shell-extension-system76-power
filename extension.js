@@ -37,6 +37,9 @@ const PowerDaemon = Gio.DBusProxy.makeProxyWrapper(
 
 function init() {}
 
+var switched = false;
+var notified = false;
+
 function enable() {
     this.bus = new PowerDaemon(Gio.DBus.system, 'com.system76.PowerDaemon', '/com/system76/PowerDaemon');
 
@@ -119,7 +122,11 @@ function enable() {
 
 function hotplug(item, name, vendor) {
     var extension = this;
+    if (switched || notified) {
+      return;
+    }
 
+    notified = true;
     let dialog = extension.setting_dialog("Switch to " + name + " to use external displays");
     dialog.open();
 
@@ -140,6 +147,7 @@ function hotplug(item, name, vendor) {
 }
 
 function graphics_activate(item, name, vendor) {
+    switched = true;
     var extension = this;
     if (!item.setting) {
         item.setting = true;
