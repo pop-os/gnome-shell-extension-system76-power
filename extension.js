@@ -1,4 +1,3 @@
-const Animation = imports.ui.animation;
 const Clutter = imports.gi.Clutter;
 const Gio = imports.gi.Gio;
 const St = imports.gi.St;
@@ -65,7 +64,7 @@ var PopDialog = new Lang.Class({
     },
 
     update(icon, title, description) {
-        this.set_icon(icon);
+        this.icon.icon_name = icon;
         this.label.text = title;
         this.description.text = description;
     },
@@ -87,16 +86,11 @@ var PopDialog = new Lang.Class({
     },
 
     set_icon(icon) {
-        if (icon == "spinner") {
-            let spinnerIcon = Gio.File.new_for_uri('resource:///org/gnome/shell/theme/process-working.svg');
-            this._workSpinner = new Animation.AnimatedIcon(spinnerIcon, 48);
-            this._workSpinner.actor.opacity = 0;
-            this.icon = this._workSpinner.actor;
-        } else {
-            this.icon = new St.Icon({ icon_name: icon, icon_size: 48, style_class: "pop-dialog-icon" });
-        }
-
-        this.icon.style_class = "pop-dialog-icon";
+        this.icon = new St.Icon({
+            icon_name: icon,
+            icon_size: 48,
+            style_class: "pop-dialog-icon"
+        });
     }
 });
 
