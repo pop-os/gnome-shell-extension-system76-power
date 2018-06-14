@@ -315,7 +315,7 @@ function graphics_activate(item, name, vendor) {
 }
 
 function reboot(name) {
-    Util.trySpawn(["gnome-session-quit", "--reboot"]);
+    Util.trySpawn(["systemctl", "reboot"]);
 }
 
 function reset_graphics_ornament() {
