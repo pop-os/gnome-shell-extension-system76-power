@@ -236,11 +236,18 @@ function hotplug(item, name, vendor) {
     );
     dialog.open();
 
+    var alternative_graphics;
+    if (name == "NVIDIA") {
+        alternative_graphics = "Intel";
+    } else {
+        alternative_graphics = "NVIDIA";
+    }
+
     dialog.setButtons([{
         action: function() {
             dialog.close();
         },
-        label: "Continue using " + name,
+        label: "Continue using " + alternative_graphics,
         key: Clutter.Escape
     }, {
         action: function() {
