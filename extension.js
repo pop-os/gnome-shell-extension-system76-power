@@ -1,6 +1,7 @@
 const Clutter = imports.gi.Clutter;
 const Gio = imports.gi.Gio;
 const St = imports.gi.St;
+const Lang = imports.lang;
 
 const Util = imports.misc.util;
 
@@ -40,6 +41,98 @@ function init() {}
 var switched = false;
 var notified = false;
 
+var PopDialog = new Lang.Class({
+    Name: "PopDialog",
+    Extends: ModalDialog.ModalDialog,
+
+    _init(icon, title, description, params) {
+        this.parent(params);
+
+        this.set_icon(icon);
+        this.set_label(title);
+        this.set_description(description);
+
+        this.descriptionBox = new St.BoxLayout({ vertical: true });
+        this.descriptionBox.add(this.label);
+        this.descriptionBox.add(this.description);
+
+        this.container = new St.BoxLayout({ vertical: false });
+        this.container.add(this.icon);
+        this.container.add(this.descriptionBox);
+
+        this.contentLayout.add(this.container);
+    },
+
+    update(icon, title, description) {
+        this.icon.icon_name = icon;
+        this.label.text = title;
+        this.description.text = description;
+    },
+
+    set_description(description) {
+        this.description = new St.Label({
+            style_class: "end-session-dialog-description",
+            text: description,
+        });
+    },
+
+    set_label(title) {
+        this.label = new St.Label({
+            style_class: "end-session-dialog-subject",
+            text: title,
+            x_align: St.Align.START,
+            y_align: St.Align.START,
+        });
+    },
+
+    set_icon(icon) {
+        this.icon = new St.Icon({
+            icon_name: icon,
+            icon_size: 48,
+            style_class: "pop-dialog-icon"
+        });
+    }
+});
+
+var PopupGraphicsMenuItem = new Lang.Class({
+  Name: "PopupGraphicsMenuItem",
+  Extends: PopupMenu.PopupBaseMenuItem,
+
+  _init(title, text, params) {
+    this.parent(params);
+    this.box = new St.BoxLayout({ vertical: true });
+    this.label = new St.Label({
+        style_class: "pop-menu-title",
+        text: title,
+    });
+
+    this.description = new St.Label({
+        style_class: "pop-menu-description",
+        text: "",
+    });
+
+    if (text != null) {
+       this.description.text = text;
+    } else {
+       this.description.hide();
+    }
+
+    this.box.add_child(this.label);
+    this.box.add_child(this.description);
+    this.actor.add_child(this.box);
+    this.actor.label_actor = this.box;
+  },
+
+  setDescription(description) {
+      this.description.text = description;
+      this.description.show();
+  },
+
+  hideDescription() {
+      this.description.hide();
+  }
+});
+
 function enable() {
     this.bus = new PowerDaemon(Gio.DBus.system, 'com.system76.PowerDaemon', '/com/system76/PowerDaemon');
 
@@ -51,16 +144,25 @@ function enable() {
         this.graphics_separator = new PopupMenu.PopupSeparatorMenuItem();
         this.powerMenu.addMenuItem(this.graphics_separator, 0);
 
-        var intel_name = "Intel Graphics";
-        this.intel = new PopupMenu.PopupMenuItem(intel_name);
+        var intel_text, nvidia_text;
+        if (graphics == "intel") {
+            intel_text = null;
+            nvidia_text = "Enable for external displays.\nRequires restart.";
+        } else {
+            intel_text = "Disables external displays.\nRequires restart.";
+            nvidia_text = null;
+        }
+
+        var intel_name = "Intel";
+        this.intel = new PopupGraphicsMenuItem(intel_name + " Graphics", intel_text);
         this.intel.setting = false;
         this.intel.connect('activate', (item, event) => {
             this.graphics_activate(item, intel_name, "intel");
         });
         this.powerMenu.addMenuItem(this.intel, 0);
 
-        var nvidia_name = "NVIDIA Graphics";
-        this.nvidia = new PopupMenu.PopupMenuItem(nvidia_name);
+        var nvidia_name = "NVIDIA";
+        this.nvidia = new PopupGraphicsMenuItem(nvidia_name + " Graphics", nvidia_text);
         this.nvidia.setting = false;
         this.nvidia.connect('activate', (item, event) => {
             this.graphics_activate(item, nvidia_name, "nvidia");
@@ -127,21 +229,25 @@ function hotplug(item, name, vendor) {
     }
 
     notified = true;
-    let dialog = extension.setting_dialog("Switch to " + name + " to use external displays");
+    let dialog = new PopDialog(
+        "video-display-symbolic",
+        "Switch to " + name + " to use external displays",
+        "External displays are connected to the NVIDIA card.\nSwitch to NVIDIA graphics to use them.",
+    );
     dialog.open();
 
     dialog.setButtons([{
         action: function() {
             dialog.close();
         },
-        label: "Close",
+        label: "Continue using " + name,
         key: Clutter.Escape
     }, {
         action: function() {
             dialog.close();
             extension.graphics_activate(item, name, vendor);
         },
-        label: "Switch",
+        label: "Switch to " + name,
         key: Clutter.Enter
     }]);
 }
@@ -152,27 +258,43 @@ function graphics_activate(item, name, vendor) {
     if (!item.setting) {
         item.setting = true;
 
-        let dialog = extension.setting_dialog("Switching to " + name + " on next reboot...");
+        let dialog = new PopDialog(
+            "dialog-warning-symbolic",
+            "Preparing to Switch to " + name + " Graphics",
+            name + " graphics will be enabled on the next restart",
+        );
         dialog.open();
 
         extension.bus.SetGraphicsRemote(vendor, function(result, error) {
             item.setting = false;
 
             if (error == null) {
-                dialog.label.set_text("Reboot to use " + name);
+                dialog.update(
+                    "system-restart-symbolic",
+                    "Restart to Switch to " + name + " Graphics",
+                    "Switching to " + name + " will close all open apps and restart your device.\nYou may lose any unsaved work."
+                );
+                var reboot_msg = "Will be enabled on\nthe next restart.";
+                if (name == "intel") {
+                    extension.intel.setDescription(reboot_msg);
+                    extension.nvidia.hideDescription();
+                } else {
+                    extension.nvidia.setDescription(reboot_msg);
+                    extension.intel.hideDescription();
+                }
 
                 dialog.setButtons([{
                     action: function() {
                         dialog.close();
                     },
-                    label: "Close",
+                    label: "Restart Later",
                     key: Clutter.Escape
                 }, {
                     action: function() {
                         dialog.close();
                         extension.reboot();
                     },
-                    label: "Reboot",
+                    label: "Restart and Switch",
                     key: Clutter.Enter
                 }]);
             } else {
@@ -190,25 +312,6 @@ function graphics_activate(item, name, vendor) {
             }
         });
     }
-}
-
-function setting_dialog(text) {
-    var dialog = new ModalDialog.ModalDialog({
-        styleClass: "run-dialog"
-    });
-
-    dialog.label = new St.Label({
-        style_class: "run-dialog-label",
-        text: text
-    });
-
-    dialog.contentLayout.add(dialog.label, {
-        x_fill: false,
-        x_align: St.Align.START,
-        y_align: St.Align.START
-    });
-
-    return dialog;
 }
 
 function reboot(name) {

@@ -1,0 +1,13 @@
+.pop-menu-title {
+  padding-left: 0;
+  margin-left: 0;
+}
+
+.pop-menu-description {
+  padding-top: 3px;
+  font-style: italic;
+}
+
+.pop-dialog-icon {
+  padding: 0 24px 12px 0;
+}

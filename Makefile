@@ -14,7 +14,7 @@ $(info UUID is "$(UUID)")
 
 .PHONY: all clean install zip-file
 
-all: extension.js metadata.json
+all: extension.js metadata.json stylesheet.css
 	rm -rf _build
 	mkdir -p _build
 	cp $^ _build
