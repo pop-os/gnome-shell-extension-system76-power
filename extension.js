@@ -53,51 +53,47 @@ var PopDialog = new Lang.Class({
         this.set_label(title);
         this.set_description(description);
 
-        this.titleBox = new St.BoxLayout({ vertical: false });
-        this.titleBox.add(this.icon);
-        this.titleBox.add(this.label, { y_fill: true });
+        this.descriptionBox = new St.BoxLayout({ vertical: true });
+        this.descriptionBox.add(this.label);
+        this.descriptionBox.add(this.description);
 
-        this.contentLayout.add(this.titleBox);
-        this.contentLayout.add(this.description, {
-            x_fill: false,
-            x_align: St.Align.START,
-            y_align: St.Align.START
-        });
+        this.container = new St.BoxLayout({ vertical: false });
+        this.container.add(this.icon);
+        this.container.add(this.descriptionBox);
+
+        this.contentLayout.add(this.container);
     },
 
     update(icon, title, description) {
-        this.icon.destroy();
-        this.label.destroy();
-
         this.set_icon(icon);
-        this.set_label(title);
+        this.label.text = title;
         this.description.text = description;
-
-        this.titleBox.add(this.icon);
-        this.titleBox.add(this.label, { y_fill: true });
     },
 
     set_description(description) {
-        this.description = new St.Label({ text: description });
+        this.description = new St.Label({
+            style_class: "end-session-dialog-description",
+            text: description,
+        });
     },
 
     set_label(title) {
         this.label = new St.Label({
-            style_class: "run-dialog-label",
+            style_class: "end-session-dialog-subject",
             text: title,
             x_align: St.Align.START,
-            y_align: St.Align.END
+            y_align: St.Align.START,
         });
     },
 
     set_icon(icon) {
         if (icon == "spinner") {
             let spinnerIcon = Gio.File.new_for_uri('resource:///org/gnome/shell/theme/process-working.svg');
-            this._workSpinner = new Animation.AnimatedIcon(spinnerIcon, 32);
+            this._workSpinner = new Animation.AnimatedIcon(spinnerIcon, 48);
             this._workSpinner.actor.opacity = 0;
             this.icon = this._workSpinner.actor;
         } else {
-            this.icon = new St.Icon({ icon_name: icon, icon_size: 32, style_class: "pop-dialog-icon" });
+            this.icon = new St.Icon({ icon_name: icon, icon_size: 48, style_class: "pop-dialog-icon" });
         }
 
         this.icon.style_class = "pop-dialog-icon";
