@@ -52,6 +52,12 @@ var PopDialog = new Lang.Class({
         this.set_label(title);
         this.set_description(description);
 
+        let textProps = { ellipsize_mode: Pango.EllipsizeMode.NONE,
+                          line_wrap: true };
+
+        Object.assign(this.label.clutter_text, textProps);
+        Object.assign(this.description.clutter_text, textProps);
+
         this.descriptionBox = new St.BoxLayout({ vertical: true });
         this.descriptionBox.add(this.label);
         this.descriptionBox.add(this.description);
@@ -232,7 +238,7 @@ function hotplug(item, name, vendor) {
     let dialog = new PopDialog(
         "video-display-symbolic",
         "Switch to " + name + " to use external displays",
-        "External displays are connected to the NVIDIA card.\nSwitch to NVIDIA graphics to use them.",
+        "External displays are connected to the NVIDIA card. Switch to NVIDIA graphics to use them.",
     );
     dialog.open();
 
@@ -279,7 +285,7 @@ function graphics_activate(item, name, vendor) {
                 dialog.update(
                     "system-restart-symbolic",
                     "Restart to Switch to " + name + " Graphics",
-                    "Switching to " + name + " will close all open apps and restart your device.\nYou may lose any unsaved work."
+                    "Switching to " + name + " will close all open apps and restart your device. You may lose any unsaved work."
                 );
                 var reboot_msg = "Will be enabled on\nthe next restart.";
                 if (name == "intel") {
