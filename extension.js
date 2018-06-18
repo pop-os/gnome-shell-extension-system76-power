@@ -2,7 +2,7 @@ const Clutter = imports.gi.Clutter;
 const Gio = imports.gi.Gio;
 const St = imports.gi.St;
 const Lang = imports.lang;
-
+const Pango = imports.gi.Pango;
 const Util = imports.misc.util;
 
 const Main = imports.ui.main;
@@ -36,10 +36,15 @@ const PowerDaemon = Gio.DBusProxy.makeProxyWrapper(
 </node>'
 );
 
+const GRAPHICS = _(" Graphics");
+
 function init() {}
 
 var switched = false;
 var notified = false;
+
+let textProps = { ellipsize_mode: Pango.EllipsizeMode.NONE,
+                  line_wrap: true };
 
 var PopDialog = new Lang.Class({
     Name: "PopDialog",
@@ -52,27 +57,32 @@ var PopDialog = new Lang.Class({
         this.set_label(title);
         this.set_description(description);
 
-        let textProps = { ellipsize_mode: Pango.EllipsizeMode.NONE,
-                          line_wrap: true };
-
         Object.assign(this.label.clutter_text, textProps);
         Object.assign(this.description.clutter_text, textProps);
 
-        this.descriptionBox = new St.BoxLayout({ vertical: true });
+        this.descriptionBox = new St.BoxLayout({
+            style_class: "pop-dialog-description-box",
+            vertical: true
+        });
         this.descriptionBox.add(this.label);
         this.descriptionBox.add(this.description);
 
         this.container = new St.BoxLayout({ vertical: false });
         this.container.add(this.icon);
         this.container.add(this.descriptionBox);
-
         this.contentLayout.add(this.container);
+
+        this.contentLayout.request_mode = Clutter.RequestMode.HEIGHT_FOR_WIDTH;
+        this.container.request_mode = Clutter.RequestMode.HEIGHT_FOR_WIDTH;
+        this.descriptionBox.request_mode = Clutter.RequestMode.HEIGHT_FOR_WIDTH;
     },
 
     update(icon, title, description) {
         this.icon.icon_name = icon;
         this.label.text = title;
         this.description.text = description;
+        Object.assign(this.label.clutter_text, textProps);
+        Object.assign(this.description.clutter_text, textProps);
     },
 
     set_description(description) {
@@ -80,6 +90,7 @@ var PopDialog = new Lang.Class({
             style_class: "end-session-dialog-description",
             text: description,
         });
+        this.description.add_style_class_name("pop-dialog-description");
     },
 
     set_label(title) {
@@ -153,14 +164,14 @@ function enable() {
         var intel_text, nvidia_text;
         if (graphics == "intel") {
             intel_text = null;
-            nvidia_text = "Enable for external displays.\nRequires restart.";
+            nvidia_text = _("Enable for external displays.\nRequires restart.");
         } else {
-            intel_text = "Disables external displays.\nRequires restart.";
+            intel_text = _("Disables external displays.\nRequires restart.");
             nvidia_text = null;
         }
 
         var intel_name = "Intel";
-        this.intel = new PopupGraphicsMenuItem(intel_name + " Graphics", intel_text);
+        this.intel = new PopupGraphicsMenuItem(intel_name + GRAPHICS, intel_text);
         this.intel.setting = false;
         this.intel.connect('activate', (item, event) => {
             this.graphics_activate(item, intel_name, "intel");
@@ -168,7 +179,7 @@ function enable() {
         this.powerMenu.addMenuItem(this.intel, 0);
 
         var nvidia_name = "NVIDIA";
-        this.nvidia = new PopupGraphicsMenuItem(nvidia_name + " Graphics", nvidia_text);
+        this.nvidia = new PopupGraphicsMenuItem(nvidia_name + GRAPHICS, nvidia_text);
         this.nvidia.setting = false;
         this.nvidia.connect('activate', (item, event) => {
             this.graphics_activate(item, nvidia_name, "nvidia");
@@ -196,7 +207,7 @@ function enable() {
     this.profile_separator = new PopupMenu.PopupSeparatorMenuItem();
     this.powerMenu.addMenuItem(this.profile_separator, 0);
 
-    this.battery = new PopupMenu.PopupMenuItem("Battery Life");
+    this.battery = new PopupMenu.PopupMenuItem(_("Battery Life"));
     this.battery.connect('activate', (item, event) => {
         global.log(event);
         this.reset_profile_ornament();
@@ -206,7 +217,7 @@ function enable() {
     });
     this.powerMenu.addMenuItem(this.battery, 0);
 
-    this.balanced = new PopupMenu.PopupMenuItem("Balanced");
+    this.balanced = new PopupMenu.PopupMenuItem(_("Balanced"));
     this.balanced.connect('activate', (item, event) => {
         this.reset_profile_ornament();
         this.bus.BalancedRemote(function() {
@@ -215,7 +226,7 @@ function enable() {
     });
     this.powerMenu.addMenuItem(this.balanced, 0);
 
-    this.performance = new PopupMenu.PopupMenuItem("High Performance");
+    this.performance = new PopupMenu.PopupMenuItem(_("High Performance"));
     this.performance.connect('activate', (item, event) => {
         this.reset_profile_ornament();
         this.bus.PerformanceRemote(function() {
@@ -237,11 +248,11 @@ function hotplug(item, name, vendor) {
     notified = true;
     let dialog = new PopDialog(
         "video-display-symbolic",
-        "Switch to " + name + " to use external displays",
-        "External displays are connected to the NVIDIA card. Switch to NVIDIA graphics to use them.",
+        _("Switch to ") + name + _(" to use external displays"),
+        _("External displays are connected to the NVIDIA card. Switch to NVIDIA graphics to use them."),
     );
     dialog.open();
-
+    
     var alternative_graphics;
     if (name == "NVIDIA") {
         alternative_graphics = "Intel";
@@ -253,14 +264,14 @@ function hotplug(item, name, vendor) {
         action: function() {
             dialog.close();
         },
-        label: "Continue using " + alternative_graphics,
+        label: _("Continue using ") + alternative_graphics,
         key: Clutter.Escape
     }, {
         action: function() {
             dialog.close();
             extension.graphics_activate(item, name, vendor);
         },
-        label: "Switch to " + name,
+        label: _("Switch to ") + name,
         key: Clutter.Enter
     }]);
 }
@@ -273,8 +284,8 @@ function graphics_activate(item, name, vendor) {
 
         let dialog = new PopDialog(
             "dialog-warning-symbolic",
-            "Preparing to Switch to " + name + " Graphics",
-            name + " graphics will be enabled on the next restart",
+            _("Preparing to Switch to ") + name + GRAPHICS,
+            name + _(" graphics will be enabled on the next restart"),
         );
         dialog.open();
 
@@ -284,10 +295,10 @@ function graphics_activate(item, name, vendor) {
             if (error == null) {
                 dialog.update(
                     "system-restart-symbolic",
-                    "Restart to Switch to " + name + " Graphics",
-                    "Switching to " + name + " will close all open apps and restart your device. You may lose any unsaved work."
+                    _("Restart to Switch to ") + name + GRAPHICS,
+                    _("Switching to ") + name + _(" will close all open apps and restart your device. You may lose any unsaved work.")
                 );
-                var reboot_msg = "Will be enabled on\nthe next restart.";
+                var reboot_msg = _("Will be enabled on\nthe next restart.");
                 if (name == "intel") {
                     extension.intel.setDescription(reboot_msg);
                     extension.nvidia.hideDescription();
@@ -300,20 +311,20 @@ function graphics_activate(item, name, vendor) {
                     action: function() {
                         dialog.close();
                     },
-                    label: "Restart Later",
+                    label: _("Restart Later"),
                     key: Clutter.Escape
                 }, {
                     action: function() {
                         dialog.close();
                         extension.reboot();
                     },
-                    label: "Restart and Switch",
+                    label: _("Restart and Switch"),
                     key: Clutter.Enter
                 }]);
             } else {
                 global.log(error);
 
-                dialog.label.set_text("Failed to switch to " + name);
+                dialog.label.set_text(_("Failed to switch to ") + name);
 
                 dialog.setButtons([{
                     action: function() {
