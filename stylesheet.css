@@ -9,5 +9,13 @@
 }
 
 .pop-dialog-icon {
-  padding: 0 24px 12px 0;
+  padding: 0px 24px 12px 0;
+}
+
+.pop-dialog-description-box {
+  width: 24em;
+}
+
+.pop-dialog-description {
+  margin-top: 3px;
 }
