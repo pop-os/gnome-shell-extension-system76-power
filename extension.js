@@ -38,7 +38,16 @@ const PowerDaemon = Gio.DBusProxy.makeProxyWrapper(
 
 const GRAPHICS = _(" Graphics");
 
-function init() {}
+const DMI_PRODUCT_VERSION_PATH = "/sys/class/dmi/id/product_version";
+const DISCRETE_EXTERNAL_DISPLAY_MODELS = [ "oryp4", "oryp4-b" ];
+var DISPLAY_REQUIRES_NVIDIA = false;
+
+function init() {
+    let file = Gio.File.new_for_path (DMI_PRODUCT_VERSION_PATH);
+    let [success, contents] = file.load_contents(null);
+    var product_version = contents.trim();
+    DISPLAY_REQUIRES_NVIDIA = DISCRETE_EXTERNAL_DISPLAY_MODELS.includes(product_version);
+}
 
 var switched = false;
 var notified = false;
@@ -162,11 +171,19 @@ function enable() {
         this.powerMenu.addMenuItem(this.graphics_separator, 0);
 
         var intel_text, nvidia_text;
-        if (graphics == "intel") {
+        if (DISPLAY_REQUIRES_NVIDIA) {
+            if (graphics == "intel") {
+                intel_text = null;
+                nvidia_text = _("Enable for external displays.\nRequires restart.");
+            } else {
+                intel_text = _("Disables external displays.\nRequires restart.");
+                nvidia_text = null;
+            }
+        } else if (graphics == "intel") {
             intel_text = null;
-            nvidia_text = _("Enable for external displays.\nRequires restart.");
+            nvidia_text = _("Requires restart.");
         } else {
-            intel_text = _("Disables external displays.\nRequires restart.");
+            intel_text = _("Requires restart.");
             nvidia_text = null;
         }
 
@@ -252,7 +269,7 @@ function hotplug(item, name, vendor) {
         _("External displays are connected to the NVIDIA card. Switch to NVIDIA graphics to use them."),
     );
     dialog.open();
-    
+
     var alternative_graphics;
     if (name == "NVIDIA") {
         alternative_graphics = "Intel";
