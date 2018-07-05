@@ -45,7 +45,7 @@ var DISPLAY_REQUIRES_NVIDIA = false;
 function init() {
     let file = Gio.File.new_for_path (DMI_PRODUCT_VERSION_PATH);
     let [success, contents] = file.load_contents(null);
-    var product_version = contents.trim();
+    let product_version = contents.toString().trim();
     DISPLAY_REQUIRES_NVIDIA = DISCRETE_EXTERNAL_DISPLAY_MODELS.includes(product_version);
 }
 
