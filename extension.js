@@ -22,6 +22,9 @@ const PowerDaemon = Gio.DBusProxy.makeProxyWrapper(
     <method name="SetGraphics">\
       <arg name="vendor" type="s" direction="in"/>\
     </method>\
+    <method name="GetSwitchable">\
+      <arg name="switchable" type="b" direction="out"/>\
+    </method>\
     <method name="GetGraphicsPower">\
       <arg name="power" type="b" direction="out"/>\
     </method>\
@@ -165,58 +168,60 @@ function enable() {
     this.powerMenu = Main.panel.statusArea['aggregateMenu']._power._item.menu;
 
     try {
-        var graphics = this.bus.GetGraphicsSync();
+        if (this.bus.GetSwitchableSync() == "true") {
+            var graphics = this.bus.GetGraphicsSync();
 
-        this.graphics_separator = new PopupMenu.PopupSeparatorMenuItem();
-        this.powerMenu.addMenuItem(this.graphics_separator, 0);
+            this.graphics_separator = new PopupMenu.PopupSeparatorMenuItem();
+            this.powerMenu.addMenuItem(this.graphics_separator, 0);
 
-        var intel_text, nvidia_text;
-        if (DISPLAY_REQUIRES_NVIDIA) {
-            if (graphics == "intel") {
+            var intel_text, nvidia_text;
+            if (DISPLAY_REQUIRES_NVIDIA) {
+                if (graphics == "intel") {
+                    intel_text = null;
+                    nvidia_text = _("Enable for external displays.\nRequires restart.");
+                } else {
+                    intel_text = _("Disables external displays.\nRequires restart.");
+                    nvidia_text = null;
+                }
+            } else if (graphics == "intel") {
                 intel_text = null;
-                nvidia_text = _("Enable for external displays.\nRequires restart.");
+                nvidia_text = _("Requires restart.");
             } else {
-                intel_text = _("Disables external displays.\nRequires restart.");
+                intel_text = _("Requires restart.");
                 nvidia_text = null;
             }
-        } else if (graphics == "intel") {
-            intel_text = null;
-            nvidia_text = _("Requires restart.");
-        } else {
-            intel_text = _("Requires restart.");
-            nvidia_text = null;
-        }
 
-        var intel_name = "Intel";
-        this.intel = new PopupGraphicsMenuItem(intel_name + GRAPHICS, intel_text);
-        this.intel.setting = false;
-        this.intel.connect('activate', (item, event) => {
-            this.graphics_activate(item, intel_name, "intel");
-        });
-        this.powerMenu.addMenuItem(this.intel, 0);
+            var intel_name = "Intel";
+            this.intel = new PopupGraphicsMenuItem(intel_name + GRAPHICS, intel_text);
+            this.intel.setting = false;
+            this.intel.connect('activate', (item, event) => {
+                this.graphics_activate(item, intel_name, "intel");
+            });
+            this.powerMenu.addMenuItem(this.intel, 0);
 
-        var nvidia_name = "NVIDIA";
-        this.nvidia = new PopupGraphicsMenuItem(nvidia_name + GRAPHICS, nvidia_text);
-        this.nvidia.setting = false;
-        this.nvidia.connect('activate', (item, event) => {
-            this.graphics_activate(item, nvidia_name, "nvidia");
-        });
-        this.powerMenu.addMenuItem(this.nvidia, 0);
+            var nvidia_name = "NVIDIA";
+            this.nvidia = new PopupGraphicsMenuItem(nvidia_name + GRAPHICS, nvidia_text);
+            this.nvidia.setting = false;
+            this.nvidia.connect('activate', (item, event) => {
+                this.graphics_activate(item, nvidia_name, "nvidia");
+            });
+            this.powerMenu.addMenuItem(this.nvidia, 0);
 
-        this.reset_graphics_ornament();
-        if (graphics == "intel") {
-            this.intel.setOrnament(Ornament.DOT);
-        } else if (graphics == "nvidia") {
-            this.nvidia.setOrnament(Ornament.DOT);
-        }
-
-        var extension = this;
-        this.bus.connectSignal("HotPlugDetect", function(proxy) {
-            var graphics = proxy.GetGraphicsSync();
-            if (graphics != "nvidia") {
-                extension.hotplug(extension.nvidia, nvidia_name, "nvidia");
+            this.reset_graphics_ornament();
+            if (graphics == "intel") {
+                this.intel.setOrnament(Ornament.DOT);
+            } else if (graphics == "nvidia") {
+                this.nvidia.setOrnament(Ornament.DOT);
             }
-        });
+
+            var extension = this;
+            this.bus.connectSignal("HotPlugDetect", function(proxy) {
+                var graphics = proxy.GetGraphicsSync();
+                if (graphics != "nvidia") {
+                    extension.hotplug(extension.nvidia, nvidia_name, "nvidia");
+                }
+            });
+        }
     } catch (error) {
         global.log(error);
     }
