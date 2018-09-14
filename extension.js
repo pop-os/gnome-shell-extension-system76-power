@@ -168,7 +168,7 @@ function enable() {
     this.powerMenu = Main.panel.statusArea['aggregateMenu']._power._item.menu;
 
     try {
-        if (this.bus.GetSwitchableSync()) {
+        if (this.bus.GetSwitchableSync() == "true") {
             var graphics = this.bus.GetGraphicsSync();
 
             this.graphics_separator = new PopupMenu.PopupSeparatorMenuItem();
