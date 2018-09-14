@@ -10,6 +10,6 @@ Vcs-Git: https://github.com/system76/gnome-shell-extension-system76-power.git
 Package: gnome-shell-extension-system76-power
 Architecture: all
 Depends:
-    system76-power (>= 0.1.2~),
+    system76-power (>= 1.0.0~),
     ${misc:Depends}
 Description: Gnome-shell extension for System76 Power Management
