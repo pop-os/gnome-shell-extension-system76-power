@@ -42,7 +42,7 @@ const PowerDaemon = Gio.DBusProxy.makeProxyWrapper(
 const GRAPHICS = _(" Graphics");
 
 const DMI_PRODUCT_VERSION_PATH = "/sys/class/dmi/id/product_version";
-const DISCRETE_EXTERNAL_DISPLAY_MODELS = [ "oryp4", "oryp4-b" ];
+const DISCRETE_EXTERNAL_DISPLAY_MODELS = [ "oryp4", "oryp4-b", "oryp5" ];
 var DISPLAY_REQUIRES_NVIDIA = false;
 
 function init() {
