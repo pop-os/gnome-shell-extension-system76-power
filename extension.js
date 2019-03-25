@@ -16,6 +16,9 @@ const PowerDaemon = Gio.DBusProxy.makeProxyWrapper(
     <method name="Performance"/>\
     <method name="Balanced"/>\
     <method name="Battery"/>\
+    <method name="GetProfile">\
+        <arg name="profile" type="s" direction="out"/>\
+    </method>\
     <method name="GetGraphics">\
       <arg name="vendor" type="s" direction="out"/>\
     </method>\
@@ -35,6 +38,9 @@ const PowerDaemon = Gio.DBusProxy.makeProxyWrapper(
     <signal name="HotPlugDetect">\
       <arg name="port" type="t"/>\
     </signal>\
+    <signal name="PowerProfileSwitch">\
+      <arg name="profile" type="s"/>\
+    </signal>\
   </interface>\
 </node>'
 );
@@ -46,7 +52,7 @@ const DISCRETE_EXTERNAL_DISPLAY_MODELS = [ "oryp4", "oryp4-b", "oryp5" ];
 var DISPLAY_REQUIRES_NVIDIA = false;
 
 function init() {
-    let file = Gio.File.new_for_path (DMI_PRODUCT_VERSION_PATH);
+    let file = Gio.File.new_for_path(DMI_PRODUCT_VERSION_PATH);
     let [success, contents] = file.load_contents(null);
     let product_version = contents.toString().trim();
     DISPLAY_REQUIRES_NVIDIA = DISCRETE_EXTERNAL_DISPLAY_MODELS.includes(product_version);
@@ -162,6 +168,20 @@ var PopupGraphicsMenuItem = new Lang.Class({
   }
 });
 
+function set_power_profile(active_profile) {
+    this.reset_profile_ornament();
+
+    if (active_profile == "Battery") {
+        this.battery.setOrnament(Ornament.DOT);
+    } else if (active_profile == "Balanced") {
+        this.balanced.setOrnament(Ornament.DOT);
+    } else if (active_profile == "Performance") {
+        this.performance.setOrnament(Ornament.DOT);
+    }
+
+    global.log("power profile was set: '" + active_profile + "'");
+}
+
 function enable() {
     this.bus = new PowerDaemon(Gio.DBus.system, 'com.system76.PowerDaemon', '/com/system76/PowerDaemon');
 
@@ -215,7 +235,8 @@ function enable() {
             }
 
             var extension = this;
-            this.bus.connectSignal("HotPlugDetect", function(proxy) {
+            this.bus.connectSignal("HotPlugDetect", function (proxy) {
+                global.log("hotplug event detected");
                 var graphics = proxy.GetGraphicsSync();
                 if (graphics != "nvidia") {
                     extension.hotplug(extension.nvidia, nvidia_name, "nvidia");
@@ -231,7 +252,6 @@ function enable() {
 
     this.battery = new PopupMenu.PopupMenuItem(_("Battery Life"));
     this.battery.connect('activate', (item, event) => {
-        global.log(event);
         this.reset_profile_ornament();
         this.bus.BatteryRemote(function() {
             item.setOrnament(Ornament.DOT);
@@ -257,8 +277,11 @@ function enable() {
     });
     this.powerMenu.addMenuItem(this.performance, 0);
 
-    this.reset_profile_ornament();
-    this.balanced.setOrnament(Ornament.DOT);
+    var extension = this;
+    extension.set_power_profile(this.bus.GetProfileSync());
+    this.bus.connectSignal("PowerProfileSwitch", function (proxy, sender, [profile]) {
+        extension.set_power_profile(profile);
+    });
 }
 
 function hotplug(item, name, vendor) {
