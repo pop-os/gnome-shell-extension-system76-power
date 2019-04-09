@@ -4,6 +4,7 @@ const St = imports.gi.St;
 const Lang = imports.lang;
 const Pango = imports.gi.Pango;
 const Util = imports.misc.util;
+const ByteArray = imports.byteArray;
 
 const Main = imports.ui.main;
 const ModalDialog = imports.ui.modalDialog;
