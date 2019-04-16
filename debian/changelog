@@ -1,3 +1,9 @@
+gnome-shell-extension-system76-power (1.1.0) disco; urgency=medium
+
+  * Update for GNOME 3.32
+
+ -- Jeremy Soller <jeremy@system76.com>  Tue, 16 Apr 2019 09:48:24 -0600
+
 gnome-shell-extension-system76-power (1.0.0) bionic; urgency=medium
 
   * 1.0.0 release.

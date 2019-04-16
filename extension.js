@@ -52,6 +52,10 @@ const DMI_PRODUCT_VERSION_PATH = "/sys/class/dmi/id/product_version";
 const DISCRETE_EXTERNAL_DISPLAY_MODELS = [ "oryp4", "oryp4-b", "oryp5" ];
 var DISPLAY_REQUIRES_NVIDIA = false;
 
+function log(text) {
+    global.log("gnome-shell-extension-system76-power: " + text);
+}
+
 function init() {
     let file = Gio.File.new_for_path(DMI_PRODUCT_VERSION_PATH);
     let [success, contents] = file.load_contents(null);
@@ -65,12 +69,9 @@ var notified = false;
 let textProps = { ellipsize_mode: Pango.EllipsizeMode.NONE,
                   line_wrap: true };
 
-var PopDialog = new Lang.Class({
-    Name: "PopDialog",
-    Extends: ModalDialog.ModalDialog,
-
-    _init(icon, title, description, params) {
-        this.parent(params);
+var PopDialog = class extends ModalDialog.ModalDialog {
+    constructor(icon, title, description, params) {
+        super(params);
 
         this.set_icon(icon);
         this.set_label(title);
@@ -94,7 +95,7 @@ var PopDialog = new Lang.Class({
         this.contentLayout.request_mode = Clutter.RequestMode.HEIGHT_FOR_WIDTH;
         this.container.request_mode = Clutter.RequestMode.HEIGHT_FOR_WIDTH;
         this.descriptionBox.request_mode = Clutter.RequestMode.HEIGHT_FOR_WIDTH;
-    },
+    }
 
     update(icon, title, description) {
         this.icon.icon_name = icon;
@@ -102,7 +103,7 @@ var PopDialog = new Lang.Class({
         this.description.text = description;
         Object.assign(this.label.clutter_text, textProps);
         Object.assign(this.description.clutter_text, textProps);
-    },
+    }
 
     set_description(description) {
         this.description = new St.Label({
@@ -110,7 +111,7 @@ var PopDialog = new Lang.Class({
             text: description,
         });
         this.description.add_style_class_name("pop-dialog-description");
-    },
+    }
 
     set_label(title) {
         this.label = new St.Label({
@@ -119,7 +120,7 @@ var PopDialog = new Lang.Class({
             x_align: St.Align.START,
             y_align: St.Align.START,
         });
-    },
+    }
 
     set_icon(icon) {
         this.icon = new St.Icon({
@@ -128,14 +129,12 @@ var PopDialog = new Lang.Class({
             style_class: "pop-dialog-icon"
         });
     }
-});
+};
 
-var PopupGraphicsMenuItem = new Lang.Class({
-  Name: "PopupGraphicsMenuItem",
-  Extends: PopupMenu.PopupBaseMenuItem,
+var PopupGraphicsMenuItem = class extends PopupMenu.PopupBaseMenuItem {
+  constructor(title, text, params) {
+    super(params);
 
-  _init(title, text, params) {
-    this.parent(params);
     this.box = new St.BoxLayout({ vertical: true });
     this.label = new St.Label({
         style_class: "pop-menu-title",
@@ -157,17 +156,17 @@ var PopupGraphicsMenuItem = new Lang.Class({
     this.box.add_child(this.description);
     this.actor.add_child(this.box);
     this.actor.label_actor = this.box;
-  },
+  }
 
   setDescription(description) {
       this.description.text = description;
       this.description.show();
-  },
+  }
 
   hideDescription() {
       this.description.hide();
   }
-});
+};
 
 function set_power_profile(active_profile) {
     this.reset_profile_ornament();
@@ -180,7 +179,7 @@ function set_power_profile(active_profile) {
         this.performance.setOrnament(Ornament.DOT);
     }
 
-    global.log("power profile was set: '" + active_profile + "'");
+    log("power profile was set: '" + active_profile + "'");
 }
 
 function enable() {
@@ -237,7 +236,7 @@ function enable() {
 
             var extension = this;
             this.bus.connectSignal("HotPlugDetect", function (proxy) {
-                global.log("hotplug event detected");
+                log("hotplug event detected");
                 var graphics = proxy.GetGraphicsSync();
                 if (graphics != "nvidia") {
                     extension.hotplug(extension.nvidia, nvidia_name, "nvidia");
@@ -245,7 +244,7 @@ function enable() {
             });
         }
     } catch (error) {
-        global.log(error);
+        log("failed to detect graphics switching: " + error);
     }
 
     this.profile_separator = new PopupMenu.PopupSeparatorMenuItem();
@@ -368,7 +367,7 @@ function graphics_activate(item, name, vendor) {
                     key: Clutter.Enter
                 }]);
             } else {
-                global.log(error);
+                log("failed to switch: " + error);
 
                 dialog.label.set_text(_("Failed to switch to ") + name);
 
