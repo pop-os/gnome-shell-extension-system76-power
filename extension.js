@@ -50,7 +50,7 @@ const GRAPHICS = _(" Graphics");
 
 const DMI_PRODUCT_VERSION_PATH = "/sys/class/dmi/id/product_version";
 const DISCRETE_EXTERNAL_DISPLAY_MODELS = [
-    "addp1",
+    "addw1",
     "oryp4",
     "oryp4-b",
     "oryp5"
