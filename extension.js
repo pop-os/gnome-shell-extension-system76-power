@@ -78,9 +78,24 @@ var PopDialog = class extends ModalDialog.ModalDialog {
     constructor(icon, title, description, params) {
         super(params);
 
-        this.set_icon(icon);
-        this.set_label(title);
-        this.set_description(description);
+        this.icon = new St.Icon({
+            icon_name: icon,
+            icon_size: 48,
+            style_class: "pop-dialog-icon"
+        });
+
+        this.label = new St.Label({
+            style_class: "end-session-dialog-subject",
+            text: title,
+            x_align: St.Align.START,
+            y_align: St.Align.START,
+        });
+
+        this.description = new St.Label({
+            style_class: "end-session-dialog-description",
+            text: description,
+        });
+        this.description.add_style_class_name("pop-dialog-description");
 
         Object.assign(this.label.clutter_text, textProps);
         Object.assign(this.description.clutter_text, textProps);
@@ -108,31 +123,6 @@ var PopDialog = class extends ModalDialog.ModalDialog {
         this.description.text = description;
         Object.assign(this.label.clutter_text, textProps);
         Object.assign(this.description.clutter_text, textProps);
-    }
-
-    set_description(description) {
-        this.description = new St.Label({
-            style_class: "end-session-dialog-description",
-            text: description,
-        });
-        this.description.add_style_class_name("pop-dialog-description");
-    }
-
-    set_label(title) {
-        this.label = new St.Label({
-            style_class: "end-session-dialog-subject",
-            text: title,
-            x_align: St.Align.START,
-            y_align: St.Align.START,
-        });
-    }
-
-    set_icon(icon) {
-        this.icon = new St.Icon({
-            icon_name: icon,
-            icon_size: 48,
-            style_class: "pop-dialog-icon"
-        });
     }
 };
 
