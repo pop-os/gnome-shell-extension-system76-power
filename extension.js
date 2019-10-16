@@ -1,6 +1,5 @@
 const Clutter = imports.gi.Clutter;
 const Gio = imports.gi.Gio;
-const GObject = imports.gi.GObject;
 const St = imports.gi.St;
 const Lang = imports.lang;
 const Pango = imports.gi.Pango;
@@ -63,20 +62,19 @@ function log(text) {
 }
 
 function init() {
-    let file = Gio.File.new_for_path(DMI_PRODUCT_VERSION_PATH);
-    let [success, contents] = file.load_contents(null);
-    let product_version = ByteArray.toString(contents).trim();
+    var file = Gio.File.new_for_path(DMI_PRODUCT_VERSION_PATH);
+    var [success, contents] = file.load_contents(null);
+    var product_version = ByteArray.toString(contents).trim();
     DISPLAY_REQUIRES_NVIDIA = DISCRETE_EXTERNAL_DISPLAY_MODELS.includes(product_version);
 }
 
 var switched = false;
 var notified = false;
 
-let textProps = { ellipsize_mode: Pango.EllipsizeMode.NONE,
+var textProps = { ellipsize_mode: Pango.EllipsizeMode.NONE,
                   line_wrap: true };
 
-var PopDialog = GObject.registerClass(
-class PopDialog extends ModalDialog.ModalDialog {
+var PopDialog = class PopDialog extends ModalDialog.ModalDialog {
     constructor(icon, title, description, params) {
         super(params);
 
@@ -126,10 +124,9 @@ class PopDialog extends ModalDialog.ModalDialog {
         Object.assign(this.label.clutter_text, textProps);
         Object.assign(this.description.clutter_text, textProps);
     }
-});
+};
 
-var PopupGraphicsMenuItem = GObject.registerClass(
-class PopupGraphicsMenuItem extends PopupMenu.PopupBaseMenuItem {
+var PopupGraphicsMenuItem = class PopupGraphicsMenuItem extends PopupMenu.PopupBaseMenuItem {
   constructor(title, text, params) {
     super(params);
 
@@ -164,7 +161,7 @@ class PopupGraphicsMenuItem extends PopupMenu.PopupBaseMenuItem {
   hideDescription() {
       this.description.hide();
   }
-});
+};
 
 function set_power_profile(active_profile) {
     this.reset_profile_ornament();
@@ -289,7 +286,7 @@ function hotplug(item, name, vendor) {
     }
 
     notified = true;
-    let dialog = new PopDialog(
+    var dialog = new PopDialog(
         "video-display-symbolic",
         _("Switch to ") + name + _(" to use external displays"),
         _("External displays are connected to the NVIDIA card. Switch to NVIDIA graphics to use them."),
@@ -325,7 +322,7 @@ function graphics_activate(item, name, vendor) {
     if (!item.setting) {
         item.setting = true;
 
-        let dialog = new PopDialog(
+        var dialog = new PopDialog(
             "dialog-warning-symbolic",
             _("Preparing to Switch to ") + name + GRAPHICS,
             name + _(" graphics will be enabled on the next restart"),
