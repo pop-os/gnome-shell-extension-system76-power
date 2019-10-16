@@ -1,5 +1,6 @@
 const Clutter = imports.gi.Clutter;
 const Gio = imports.gi.Gio;
+const GObject = imports.gi.GObject;
 const St = imports.gi.St;
 const Lang = imports.lang;
 const Pango = imports.gi.Pango;
@@ -74,7 +75,8 @@ var notified = false;
 let textProps = { ellipsize_mode: Pango.EllipsizeMode.NONE,
                   line_wrap: true };
 
-var PopDialog = class extends ModalDialog.ModalDialog {
+var PopDialog = GObject.registerClass(
+class PopDialog extends ModalDialog.ModalDialog {
     constructor(icon, title, description, params) {
         super(params);
 
@@ -124,9 +126,10 @@ var PopDialog = class extends ModalDialog.ModalDialog {
         Object.assign(this.label.clutter_text, textProps);
         Object.assign(this.description.clutter_text, textProps);
     }
-};
+});
 
-var PopupGraphicsMenuItem = class extends PopupMenu.PopupBaseMenuItem {
+var PopupGraphicsMenuItem = GObject.registerClass(
+class PopupGraphicsMenuItem extends PopupMenu.PopupBaseMenuItem {
   constructor(title, text, params) {
     super(params);
 
@@ -161,7 +164,7 @@ var PopupGraphicsMenuItem = class extends PopupMenu.PopupBaseMenuItem {
   hideDescription() {
       this.description.hide();
   }
-};
+});
 
 function set_power_profile(active_profile) {
     this.reset_profile_ornament();
