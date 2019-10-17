@@ -6,6 +6,7 @@ const Pango = imports.gi.Pango;
 const Util = imports.misc.util;
 const ByteArray = imports.byteArray;
 
+const Dialog = imports.ui.dialog;
 const Main = imports.ui.main;
 const ModalDialog = imports.ui.modalDialog;
 const PopupMenu = imports.ui.popupMenu;
@@ -75,46 +76,12 @@ var textProps = { ellipsize_mode: Pango.EllipsizeMode.NONE,
                   line_wrap: true };
 
 var PopDialog = class PopDialog extends ModalDialog.ModalDialog {
-    constructor(icon, title, description, params) {
+    constructor(icon_name, title, subtitle, body, params) {
         super(params);
 
-        this.icon = new St.Icon({
-            icon_name: icon,
-            icon_size: 48,
-            style_class: "pop-dialog-icon"
-        });
-
-        this.label = new St.Label({
-            style_class: "end-session-dialog-subject",
-            text: title,
-            x_align: St.Align.START,
-            y_align: St.Align.START,
-        });
-
-        this.description = new St.Label({
-            style_class: "end-session-dialog-description",
-            text: description,
-        });
-        this.description.add_style_class_name("pop-dialog-description");
-
-        Object.assign(this.label.clutter_text, textProps);
-        Object.assign(this.description.clutter_text, textProps);
-
-        this.descriptionBox = new St.BoxLayout({
-            style_class: "pop-dialog-description-box",
-            vertical: true
-        });
-        this.descriptionBox.add(this.label);
-        this.descriptionBox.add(this.description);
-
-        this.container = new St.BoxLayout({ vertical: false });
-        this.container.add(this.icon);
-        this.container.add(this.descriptionBox);
-        this.contentLayout.add(this.container);
-
-        this.contentLayout.request_mode = Clutter.RequestMode.HEIGHT_FOR_WIDTH;
-        this.container.request_mode = Clutter.RequestMode.HEIGHT_FOR_WIDTH;
-        this.descriptionBox.request_mode = Clutter.RequestMode.HEIGHT_FOR_WIDTH;
+        let icon = new Gio.ThemedIcon({ name: icon_name });
+        this._content = new Dialog.MessageDialogContent({ icon, title, body });
+        this.contentLayout.add(this._content);
     }
 };
 
@@ -316,11 +283,9 @@ function graphics_activate(item, name, vendor) {
             item.setting = false;
 
             if (error == null) {
-                dialog.icon.icon_name = "system-restart-symbolic";
-                dialog.label.text = _("Restart to Switch to ") + name + GRAPHICS;
-                dialog.description.text = _("Switching to ") + name + _(" will close all open apps and restart your device. You may lose any unsaved work.");
-                Object.assign(dialog.label.clutter_text, textProps);
-                Object.assign(dialog.description.clutter_text, textProps);
+                dialog._content._icon.icon_name = "system-restart-symbolic";
+                dialog._content._title.set_text(_("Restart to Switch to ") + name + GRAPHICS);
+                dialog._content._body.set_text(_("Switching to ") + name + _(" will close all open apps and restart your device. You may lose any unsaved work."));
 
                 var reboot_msg = _("Will be enabled on\nthe next restart.");
                 if (name == "intel") {
@@ -352,7 +317,9 @@ function graphics_activate(item, name, vendor) {
             } else {
                 log("failed to switch: " + error);
 
-                dialog.label.set_text(_("Failed to switch to ") + name);
+                dialog._content._icon.icon_name = "dialog-warning-symbolic";
+                dialog._content._title.set_text(_("Failed to switch to ") + name);
+                dialog._content._body.set_text(error);
 
                 dialog.setButtons([{
                     action: function() {
