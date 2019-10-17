@@ -116,14 +116,6 @@ var PopDialog = class PopDialog extends ModalDialog.ModalDialog {
         this.container.request_mode = Clutter.RequestMode.HEIGHT_FOR_WIDTH;
         this.descriptionBox.request_mode = Clutter.RequestMode.HEIGHT_FOR_WIDTH;
     }
-
-    update(icon, title, description) {
-        this.icon.icon_name = icon;
-        this.label.text = title;
-        this.description.text = description;
-        Object.assign(this.label.clutter_text, textProps);
-        Object.assign(this.description.clutter_text, textProps);
-    }
 };
 
 var PopupGraphicsMenuItem = class PopupGraphicsMenuItem extends PopupMenu.PopupBaseMenuItem {
@@ -151,15 +143,6 @@ var PopupGraphicsMenuItem = class PopupGraphicsMenuItem extends PopupMenu.PopupB
     this.box.add_child(this.description);
     this.actor.add_child(this.box);
     this.actor.label_actor = this.box;
-  }
-
-  setDescription(description) {
-      this.description.text = description;
-      this.description.show();
-  }
-
-  hideDescription() {
-      this.description.hide();
   }
 };
 
@@ -333,18 +316,23 @@ function graphics_activate(item, name, vendor) {
             item.setting = false;
 
             if (error == null) {
-                dialog.update(
-                    "system-restart-symbolic",
-                    _("Restart to Switch to ") + name + GRAPHICS,
-                    _("Switching to ") + name + _(" will close all open apps and restart your device. You may lose any unsaved work.")
-                );
+                dialog.icon.icon_name = "system-restart-symbolic";
+                dialog.label.text = _("Restart to Switch to ") + name + GRAPHICS;
+                dialog.description.text = _("Switching to ") + name + _(" will close all open apps and restart your device. You may lose any unsaved work.");
+                Object.assign(dialog.label.clutter_text, textProps);
+                Object.assign(dialog.description.clutter_text, textProps);
+
                 var reboot_msg = _("Will be enabled on\nthe next restart.");
                 if (name == "intel") {
-                    extension.intel.setDescription(reboot_msg);
-                    extension.nvidia.hideDescription();
+                    extension.intel.description.text = reboot_msg;
+                    extension.intel.description.show();
+
+                    extension.nvidia.description.hide();
                 } else {
-                    extension.nvidia.setDescription(reboot_msg);
-                    extension.intel.hideDescription();
+                    extension.nvidia.description.text = reboot_msg;
+                    extension.nvidia.description.show();
+
+                    extension.intel.description.hide();
                 }
 
                 dialog.setButtons([{
