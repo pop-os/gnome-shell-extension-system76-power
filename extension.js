@@ -76,7 +76,7 @@ var textProps = { ellipsize_mode: Pango.EllipsizeMode.NONE,
                   line_wrap: true };
 
 var PopDialog = class PopDialog extends ModalDialog.ModalDialog {
-    constructor(icon_name, title, subtitle, body, params) {
+    constructor(icon_name, title, body, params) {
         super(params);
 
         let icon = new Gio.ThemedIcon({ name: icon_name });
