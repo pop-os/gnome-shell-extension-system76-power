@@ -129,6 +129,7 @@ function set_power_profile(active_profile) {
 
 function enable() {
     this.bus = new PowerDaemon(Gio.DBus.system, 'com.system76.PowerDaemon', '/com/system76/PowerDaemon');
+    this.bus.set_default_timeout(300000);
 
     this.powerMenu = Main.panel.statusArea['aggregateMenu']._power._item.menu;
 
