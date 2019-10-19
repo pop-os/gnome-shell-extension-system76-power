@@ -319,7 +319,7 @@ function graphics_activate(item, name, vendor) {
 
                 dialog._content._icon.icon_name = "dialog-warning-symbolic";
                 dialog._content._title.set_text(_("Failed to switch to ") + name);
-                dialog._content._body.set_text(error);
+                dialog._content._body.set_text("");
 
                 dialog.setButtons([{
                     action: function() {
