@@ -140,19 +140,31 @@ function enable() {
             this.graphics_separator = new PopupMenu.PopupSeparatorMenuItem();
             this.powerMenu.addMenuItem(this.graphics_separator, 0);
 
-            var intel_text, nvidia_text;
+            var hybrid_text, intel_text, nvidia_text;
             if (DISPLAY_REQUIRES_NVIDIA) {
-                if (graphics == "intel") {
+                if (graphics == "hybrid") {
+                    hybrid_text = null;
+                    intel_text = _("Requires restart.");
+                    nvidia_text = _("Enable for external displays.\nRequires restart.");
+                } else if (graphics == "intel") {
+                    hybrid_text = _("Requires restart.");
                     intel_text = null;
                     nvidia_text = _("Enable for external displays.\nRequires restart.");
                 } else {
+                    hybrid_text = _("Disables external displays.\nRequires restart.");
                     intel_text = _("Disables external displays.\nRequires restart.");
                     nvidia_text = null;
                 }
+            } else if (graphics == "hybrid") {
+                hybrid_text = null;
+                intel_text = _("Requires restart.");
+                nvidia_text = _("Requires restart.");
             } else if (graphics == "intel") {
+                hybrid_text = _("Requires restart.");
                 intel_text = null;
                 nvidia_text = _("Requires restart.");
             } else {
+                hybrid_text = _("Requires restart.");
                 intel_text = _("Requires restart.");
                 nvidia_text = null;
             }
@@ -173,8 +185,18 @@ function enable() {
             });
             this.powerMenu.addMenuItem(this.nvidia, 0);
 
+            var hybrid_name = "Hybrid";
+            this.hybrid = new PopupGraphicsMenuItem(hybrid_name + GRAPHICS, hybrid_text);
+            this.hybrid.setting = false;
+            this.hybrid.connect('activate', (item, event) => {
+                this.graphics_activate(item, hybrid_name, "hybrid");
+            });
+            this.powerMenu.addMenuItem(this.hybrid, 0);
+
             this.reset_graphics_ornament();
-            if (graphics == "intel") {
+            if (graphics == "hybrid") {
+                this.hybrid.setOrnament(Ornament.DOT);
+            } else if (graphics == "intel") {
                 this.intel.setOrnament(Ornament.DOT);
             } else if (graphics == "nvidia") {
                 this.nvidia.setOrnament(Ornament.DOT);
@@ -184,8 +206,10 @@ function enable() {
             this.bus.connectSignal("HotPlugDetect", function (proxy) {
                 log("hotplug event detected");
                 var graphics = proxy.GetGraphicsSync();
-                if (graphics != "nvidia") {
-                    extension.hotplug(extension.nvidia, nvidia_name, "nvidia");
+                if (graphics == "hybrid") {
+                    extension.hotplug(hybrid_name, extension.nvidia, nvidia_name, "nvidia");
+                } else if (graphics == "intel") {
+                    extension.hotplug(intel_name, extension.nvidia, nvidia_name, "nvidia");
                 }
             });
         }
@@ -230,7 +254,7 @@ function enable() {
     });
 }
 
-function hotplug(item, name, vendor) {
+function hotplug(current, item, name, vendor) {
     var extension = this;
     if (switched || notified) {
       return;
@@ -244,18 +268,11 @@ function hotplug(item, name, vendor) {
     );
     dialog.open();
 
-    var alternative_graphics;
-    if (name == "NVIDIA") {
-        alternative_graphics = "Intel";
-    } else {
-        alternative_graphics = "NVIDIA";
-    }
-
     dialog.setButtons([{
         action: function() {
             dialog.close();
         },
-        label: _("Continue using ") + alternative_graphics,
+        label: _("Continue using ") + current,
         key: Clutter.Escape
     }, {
         action: function() {
@@ -289,15 +306,23 @@ function graphics_activate(item, name, vendor) {
                 dialog._content._body.set_text(_("Switching to ") + name + _(" will close all open apps and restart your device. You may lose any unsaved work."));
 
                 var reboot_msg = _("Will be enabled on\nthe next restart.");
-                if (name == "intel") {
+                if (name == "hybrid") {
+                    extension.hybrid.description.text = reboot_msg;
+                    extension.hybrid.description.show();
+
+                    extension.intel.description.hide();
+                    extension.nvidia.description.hide();
+                } else if (name == "intel") {
                     extension.intel.description.text = reboot_msg;
                     extension.intel.description.show();
 
+                    extension.hybrid.description.hide();
                     extension.nvidia.description.hide();
                 } else {
                     extension.nvidia.description.text = reboot_msg;
                     extension.nvidia.description.show();
 
+                    extension.hybrid.description.hide();
                     extension.intel.description.hide();
                 }
 
@@ -339,8 +364,9 @@ function reboot(name) {
 }
 
 function reset_graphics_ornament() {
-    this.nvidia.setOrnament(Ornament.NONE);
+    this.hybrid.setOrnament(Ornament.NONE);
     this.intel.setOrnament(Ornament.NONE);
+    this.nvidia.setOrnament(Ornament.NONE);
 }
 
 function reset_profile_ornament() {
@@ -368,6 +394,11 @@ function disable() {
     if (this.profile_separator) {
         this.profile_separator.destroy();
         this.profile_separator = null;
+    }
+
+    if (this.hybrid) {
+        this.hybrid.destroy();
+        this.hybrid = null;
     }
 
     if (this.nvidia) {
