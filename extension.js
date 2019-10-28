@@ -1,5 +1,6 @@
 const Clutter = imports.gi.Clutter;
 const Gio = imports.gi.Gio;
+const Shell = imports.gi.Shell;
 const St = imports.gi.St;
 const Lang = imports.lang;
 const Pango = imports.gi.Pango;
@@ -7,6 +8,7 @@ const Util = imports.misc.util;
 const ByteArray = imports.byteArray;
 
 const Dialog = imports.ui.dialog;
+const AppDisplay = imports.ui.appDisplay;
 const Main = imports.ui.main;
 const ModalDialog = imports.ui.modalDialog;
 const PopupMenu = imports.ui.popupMenu;
@@ -56,7 +58,9 @@ const DISCRETE_EXTERNAL_DISPLAY_MODELS = [
     "oryp4-b",
     "oryp5"
 ];
+
 var DISPLAY_REQUIRES_NVIDIA = false;
+var _origin;
 
 function log(text) {
     global.log("gnome-shell-extension-system76-power: " + text);
@@ -202,6 +206,10 @@ function enable() {
                 this.nvidia.setOrnament(Ornament.DOT);
             }
 
+            if (graphics == "hybrid") {
+                this.add_launch_menu_item();
+            }
+
             var extension = this;
             this.bus.connectSignal("HotPlugDetect", function (proxy) {
                 log("hotplug event detected");
@@ -252,6 +260,36 @@ function enable() {
     this.bus.connectSignal("PowerProfileSwitch", function (proxy, sender, [profile]) {
         extension.set_power_profile(profile);
     });
+}
+
+function add_launch_menu_item() {
+    _origin = AppDisplay.AppIconMenu.prototype._redisplay;
+
+    AppDisplay.AppIconMenu.prototype._redisplay = function() {
+        let ret = _origin.apply(this, arguments);
+
+        if (!this._source.app.is_window_backed()) {
+            let app_info = this._source.app.get_app_info();
+
+            this._appendSeparator();
+
+            let item = this._appendMenuItem(_("Launch using Dedicated Graphics Card"));
+            item.connect('activate', Lang.bind(this, function() {
+                this._source.animateLaunch();
+
+                Util.trySpawn([
+                    "env",
+                    "__NV_PRIME_RENDER_OFFLOAD=1",
+                    "__GLX_VENDOR_LIBRARY_NAME=nvidia",
+                    app_info.get_executable()
+                ]);
+
+                this.emit('activate-window', null);
+            }));
+        }
+
+        return ret;
+    };
 }
 
 function hotplug(current, item, name, vendor) {
@@ -376,6 +414,8 @@ function reset_profile_ornament() {
 }
 
 function disable() {
+    AppDisplay.AppIconMenu.prototype._redisplay = _origin;
+
     if (this.performance) {
         this.performance.destroy();
         this.performance = null;
