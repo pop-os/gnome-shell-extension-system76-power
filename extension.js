@@ -306,13 +306,13 @@ function graphics_activate(item, name, vendor) {
                 dialog._content._body.set_text(_("Switching to ") + name + _(" will close all open apps and restart your device. You may lose any unsaved work."));
 
                 var reboot_msg = _("Will be enabled on\nthe next restart.");
-                if (name == "hybrid") {
+                if (name == "Hybrid") {
                     extension.hybrid.description.text = reboot_msg;
                     extension.hybrid.description.show();
 
                     extension.intel.description.hide();
                     extension.nvidia.description.hide();
-                } else if (name == "intel") {
+                } else if (name == "Intel") {
                     extension.intel.description.text = reboot_msg;
                     extension.intel.description.show();
 
