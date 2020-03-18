@@ -1,3 +1,10 @@
+gnome-shell-extension-system76-power (2.0.0) focal; urgency=medium
+
+  * Converted to TypeScript (>= 3.8)
+  * Update for GNOME 3.36
+
+ -- Michael Aaron Murphy <michael@system76.com>  Wed, 18 Mar 2020 10:47:38 -0600
+
 gnome-shell-extension-system76-power (1.2.0) eoan; urgency=medium
 
   * Update for GNOME 3.34

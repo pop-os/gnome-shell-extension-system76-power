@@ -1,5 +1,3 @@
-# Basic Makefile
-
 # Retrieve the UUID from ``metadata.json``
 UUID = $(shell grep -E '^[ ]*"uuid":' ./metadata.json | sed 's@^[ ]*"uuid":[ ]*"\(.\+\)",[ ]*@\1@')
 
@@ -14,21 +12,63 @@ $(info UUID is "$(UUID)")
 
 .PHONY: all clean install zip-file
 
-all: extension.js metadata.json stylesheet.css
-	rm -rf _build
-	mkdir -p _build
-	cp $^ _build
+sources = src/*.ts stylesheet.css
+
+all: depcheck compile
 
 clean:
 	rm -rf _build
 
-install: all
+transpile: $(sources)
+	tsc
+
+compile: convert metadata.json
+	rm -rf _build
+	mkdir -p _build
+	cp -r metadata.json target/*.js stylesheet.css _build
+
+convert: transpile
+	for file in target/*.js; do \
+		sed -i \
+			-e 's#export function#function#g' \
+			-e 's#export var#var#g' \
+			-e 's#export const#var#g' \
+			-e 's#Object.defineProperty(exports, "__esModule", { value: true });#var exports = {};#g' \
+			"$${file}"; \
+		sed -i -E 's/export class (\w+)/var \1 = class \1/g' "$${file}"; \
+		sed -i -E "s/import \* as (\w+) from '(\w+)'/const \1 = Me.imports.\2/g" "$${file}"; \
+	done
+
+depcheck:
+	if ! command -v tsc >/dev/null; then \
+		echo 'You must install TypeScript >= 3.8 to transpile: (node-typescript on Debian systems)'; \
+		exit 1; \
+	fi
+
+enable:
+	gnome-extensions enable "system76-power@system76.com"
+
+disable:
+	gnome-extensions disable "system76-power@system76.com"
+
+listen:
+	journalctl -o cat -n 0 -f "$$(which gnome-shell)" | grep -v warning
+
+install:
 	rm -rf $(INSTALLBASE)/$(INSTALLNAME)
 	mkdir -p $(INSTALLBASE)/$(INSTALLNAME)
 	cp -r _build/* $(INSTALLBASE)/$(INSTALLNAME)/
 
 uninstall:
 	rm -rf $(INSTALLBASE)/$(INSTALLNAME)
+
+restart-shell:
+	echo "Restart shell!"
+	if bash -c 'xprop -root &> /dev/null'; then \
+		busctl --user call org.gnome.Shell /org/gnome/Shell org.gnome.Shell Eval s 'Meta.restart("Restarting Gnome...")'; \
+	else \
+		gnome-session-quit --logout; \
+	fi
 
 zip-file: all
 	cd _build && zip -qr "../$(UUID)$(VSTRING).zip" .

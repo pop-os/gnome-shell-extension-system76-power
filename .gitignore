@@ -1,3 +1,10 @@
-*.zip
-*.swp
 _build
+!debian/changelog
+!debian/control
+!debian/copyright
+!debian/rules
+!debian/source
+*.swp
+*.zip
+debian/*
+target
