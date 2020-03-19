@@ -46,7 +46,7 @@ const PowerDaemon = Gio.DBusProxy.makeProxyWrapper(
 </node>'
 );
 
-const GRAPHICS = _(" Graphics");
+const GRAPHICS: string = _(" Graphics");
 
 const DISABLE_EXT_DISPLAYS: string = _("Disables external displays.\nRequires restart.");
 const ENABLE_FOR_EXT_DISPLAYS: string = _("Enable for external displays.\nRequires restart.");
@@ -91,8 +91,8 @@ function disable() {
 
 var PopDialog = GObject.registerClass(
     class PopDialog extends ModalDialog.ModalDialog {
-        constructor(icon_name: string, title: string, body: string, params: any) {
-            super(params);
+        _init(icon_name: string, title: string, body: string, params: any) {
+            super._init(params);
 
             let icon = new Gio.ThemedIcon({ name: icon_name });
             this._content = new Dialog.MessageDialogContent({ icon, title, body });
@@ -103,8 +103,8 @@ var PopDialog = GObject.registerClass(
 
 var PopupGraphicsMenuItem = GObject.registerClass(
     class PopupGraphicsMenuItem extends PopupMenu.PopupBaseMenuItem {
-        constructor(title: string, text: string | null, params: any) {
-            super(params);
+        _init(title: string, text: string | null, params: any) {
+            super._init(params);
 
             this.box = new St.BoxLayout({ vertical: true });
             this.label = new St.Label({
@@ -123,9 +123,9 @@ var PopupGraphicsMenuItem = GObject.registerClass(
                 this.description.hide();
             }
 
-            this.box.add_child(this.label);
-            this.box.add_child(this.description);
-            this.actor.add_child(this.box);
+            this.box.add(this.label);
+            this.box.add(this.description);
+            this.actor.add(this.box);
             this.actor.label_actor = this.box;
         }
     }
