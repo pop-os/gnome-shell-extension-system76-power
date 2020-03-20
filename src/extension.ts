@@ -91,11 +91,11 @@ function disable() {
 
 var PopDialog = GObject.registerClass(
     class PopDialog extends ModalDialog.ModalDialog {
-        _init(icon_name: string, title: string, body: string, params: any) {
+        _init(_icon_name: string, title: string, description: string, params: any) {
             super._init(params);
 
-            let icon = new Gio.ThemedIcon({ name: icon_name });
-            this._content = new Dialog.MessageDialogContent({ icon, title, body });
+            // NOTE: Icons were removed in 3.36
+            this._content = new Dialog.MessageDialogContent({ title, description });
             this.contentLayout.add(this._content);
         }
     }
@@ -345,9 +345,8 @@ export class Ext {
                 item.setting = false;
 
                 if (this.graphics_profiles && error == null) {
-                    dialog._content._icon.icon_name = "system-restart-symbolic";
-                    dialog._content._title.set_text(_("Restart to Switch to ") + name + GRAPHICS);
-                    dialog._content._body.set_text(_("Switching to ") + name + _(" will close all open apps and restart your device. You may lose any unsaved work."));
+                    dialog._content.title = _("Restart to Switch to ") + name + GRAPHICS;
+                    dialog._content.description = _("Switching to ") + name + _(" will close all open apps and restart your device. You may lose any unsaved work.");
 
                     let reboot_msg = _("Will be enabled on\nthe next restart.");
                     if (name == "Hybrid") {
@@ -387,9 +386,8 @@ export class Ext {
                 } else {
                     log("failed to switch: " + error);
 
-                    dialog._content._icon.icon_name = "dialog-warning-symbolic";
-                    dialog._content._title.set_text(_("Failed to switch to ") + name);
-                    dialog._content._body.set_text("");
+                    dialog._content.title = _("Failed to switch to ") + name;
+                    dialog._content.description = "";
 
                     dialog.setButtons([{
                         action: () => {
