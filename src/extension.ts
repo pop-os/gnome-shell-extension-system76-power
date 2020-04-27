@@ -137,7 +137,7 @@ declare interface GObj {
 }
 
 interface GraphicsProfiles {
-    intel: GObj;
+    integrated: GObj;
     nvidia: GObj;
     hybrid: GObj;
 }
@@ -168,33 +168,33 @@ export class Ext {
                 this.power_menu.addMenuItem(this.graphics_separator);
 
                 let hybrid_text: string | null = null,
-                    intel_text: string | null = null,
+                    integrated_text: string | null = null,
                     nvidia_text: string | null = null;
 
                 if (DISPLAY_REQUIRES_NVIDIA) {
                     if (graphics == "hybrid") {
-                        intel_text = REQUIRES_RESTART;
+                        integrated_text = REQUIRES_RESTART;
                         nvidia_text = ENABLE_FOR_EXT_DISPLAYS;
-                    } else if (graphics == "intel") {
+                    } else if (graphics == "integrated" || graphics == "intel") {
                         hybrid_text = REQUIRES_RESTART;
                         nvidia_text = ENABLE_FOR_EXT_DISPLAYS;
                     } else {
                         hybrid_text = DISABLE_EXT_DISPLAYS;
-                        intel_text = DISABLE_EXT_DISPLAYS;
+                        integrated_text = DISABLE_EXT_DISPLAYS;
                     }
                 } else if (graphics == "hybrid") {
-                    intel_text = REQUIRES_RESTART;
+                    integrated_text = REQUIRES_RESTART;
                     nvidia_text = REQUIRES_RESTART;
-                } else if (graphics == "intel") {
+                } else if (graphics == "integrated" || graphics == "intel") {
                     hybrid_text = REQUIRES_RESTART;
                     nvidia_text = REQUIRES_RESTART;
                 } else {
                     hybrid_text = REQUIRES_RESTART;
-                    intel_text = REQUIRES_RESTART;
+                    integrated_text = REQUIRES_RESTART;
                 }
 
                 this.graphics_profiles = {
-                    intel: this.attach_graphics_profile("Intel", intel_text, "intel"),
+                    integrated: this.attach_graphics_profile("Integrated", integrated_text, "integrated"),
                     nvidia: this.attach_graphics_profile("NVIDIA", nvidia_text, "nvidia"),
                     hybrid: this.attach_graphics_profile("Hybrid", hybrid_text, "hybrid"),
                 };
@@ -206,11 +206,12 @@ export class Ext {
                         log("hotplug event detected");
                         let graphics: string = proxy.GetGraphicsSync();
 
-                        let current = graphics == "hybrid"
-                            ? "Hybrid"
-                            : graphics == "intel"
-                                ? "Intel"
-                                : null;
+                        let current = null;
+                        if (graphics == "hybrid") {
+                            current = "Hybrid";
+                        } else if (graphics == "integrated" || graphics == "intel") {
+                            current = "Integrated";
+                        }
 
                         if (current) this.hotplug(current, this.graphics_profiles.nvidia, "NVIDIA", "nvidia");
                     }
@@ -239,7 +240,7 @@ export class Ext {
         this.performance.destroy();
 
         if (this.graphics_profiles) {
-            this.graphics_profiles.intel.destroy();
+            this.graphics_profiles.integrated.destroy();
             this.graphics_profiles.nvidia.destroy();
             this.graphics_profiles.hybrid.destroy();
         }
@@ -273,8 +274,8 @@ export class Ext {
         let obj;
         if (graphics == "hybrid") {
             obj = graphics_profiles.hybrid;
-        } else if (graphics == "intel") {
-            obj = graphics_profiles.intel;
+        } else if (graphics == "integrated" ||  graphics == "intel") {
+            obj = graphics_profiles.integrated;
         } else if (graphics == "nvidia") {
             obj = graphics_profiles.nvidia;
         }
@@ -354,11 +355,11 @@ export class Ext {
                         this.graphics_profiles.hybrid.description.text = reboot_msg;
                         this.graphics_profiles.hybrid.description.show();
 
-                        this.graphics_profiles.intel.description.hide();
+                        this.graphics_profiles.integrated.description.hide();
                         this.graphics_profiles.nvidia.description.hide();
-                    } else if (name == "Intel") {
-                        this.graphics_profiles.intel.description.text = reboot_msg;
-                        this.graphics_profiles.intel.description.show();
+                    } else if (name == "Integrated") {
+                        this.graphics_profiles.integrated.description.text = reboot_msg;
+                        this.graphics_profiles.integrated.description.show();
 
                         this.graphics_profiles.hybrid.description.hide();
                         this.graphics_profiles.nvidia.description.hide();
@@ -367,7 +368,7 @@ export class Ext {
                         this.graphics_profiles.nvidia.description.show();
 
                         this.graphics_profiles.hybrid.description.hide();
-                        this.graphics_profiles.intel.description.hide();
+                        this.graphics_profiles.integrated.description.hide();
                     }
 
                     dialog.setButtons([{
@@ -408,7 +409,7 @@ export class Ext {
 
     reset_graphics_ornament(graphics_profiles: GObj) {
         graphics_profiles.hybrid.setOrnament(Ornament.NONE);
-        graphics_profiles.intel.setOrnament(Ornament.NONE);
+        graphics_profiles.integrated.setOrnament(Ornament.NONE);
         graphics_profiles.nvidia.setOrnament(Ornament.NONE);
     }
 
