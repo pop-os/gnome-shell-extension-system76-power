@@ -2,5 +2,6 @@
     "name": "System76 Power",
     "description": "System76 Power Management",
     "uuid": "system76-power@system76.com",
-    "shell-version": ["3.36"]
+    "shell-version": ["3.36"],
+    "url": "https://github.com/pop-os/gnome-shell-extension-system76-power"
 }
