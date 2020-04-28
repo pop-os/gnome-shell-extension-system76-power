@@ -55,6 +55,7 @@ const REQUIRES_RESTART: string = _("Requires restart.");
 const DMI_PRODUCT_VERSION_PATH = "/sys/class/dmi/id/product_version";
 const DISCRETE_EXTERNAL_DISPLAY_MODELS = [
     "addw1",
+    "addw2",
     "oryp4",
     "oryp4-b",
     "oryp5"
