@@ -234,7 +234,6 @@ export class Ext {
     }
 
     destroy() {
-        this.bus.destroy();
         this.battery.destroy();
         this.balanced.destroy();
         this.performance.destroy();
