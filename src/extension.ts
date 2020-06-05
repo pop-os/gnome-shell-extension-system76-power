@@ -58,7 +58,8 @@ const DISCRETE_EXTERNAL_DISPLAY_MODELS = [
     "addw2",
     "oryp4",
     "oryp4-b",
-    "oryp5"
+    "oryp5",
+    "oryp6",
 ];
 
 let DISPLAY_REQUIRES_NVIDIA = false;
