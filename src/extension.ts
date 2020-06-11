@@ -141,6 +141,7 @@ interface GraphicsProfiles {
     integrated: GObj;
     nvidia: GObj;
     hybrid: GObj;
+    compute: GObj;
 }
 
 export class Ext {
@@ -168,28 +169,43 @@ export class Ext {
 
                 this.power_menu.addMenuItem(this.graphics_separator);
 
-                let hybrid_text: string | null = null,
+                let compute_text: string | null = null,
+                    hybrid_text: string | null = null,
                     integrated_text: string | null = null,
                     nvidia_text: string | null = null;
 
                 if (DISPLAY_REQUIRES_NVIDIA) {
-                    if (graphics == "hybrid") {
+                    if (graphics == "compute") {
+                        hybrid_text = REQUIRES_RESTART;
                         integrated_text = REQUIRES_RESTART;
                         nvidia_text = ENABLE_FOR_EXT_DISPLAYS;
-                    } else if (graphics == "integrated" || graphics == "intel") {
+                    } else if (graphics == "hybrid") {
+                        compute_text = REQUIRES_RESTART;
+                        integrated_text = REQUIRES_RESTART;
+                        nvidia_text = ENABLE_FOR_EXT_DISPLAYS;
+                    } else if (graphics == "integrated") {
+                        compute_text = REQUIRES_RESTART;
                         hybrid_text = REQUIRES_RESTART;
                         nvidia_text = ENABLE_FOR_EXT_DISPLAYS;
                     } else {
+                        compute_text = DISABLE_EXT_DISPLAYS;
                         hybrid_text = DISABLE_EXT_DISPLAYS;
                         integrated_text = DISABLE_EXT_DISPLAYS;
                     }
-                } else if (graphics == "hybrid") {
+                } else if (graphics == "compute") {
+                    hybrid_text = REQUIRES_RESTART;
                     integrated_text = REQUIRES_RESTART;
                     nvidia_text = REQUIRES_RESTART;
-                } else if (graphics == "integrated" || graphics == "intel") {
+                } else if (graphics == "hybrid") {
+                    compute_text = REQUIRES_RESTART;
+                    integrated_text = REQUIRES_RESTART;
+                    nvidia_text = REQUIRES_RESTART;
+                } else if (graphics == "integrated") {
+                    compute_text = REQUIRES_RESTART;
                     hybrid_text = REQUIRES_RESTART;
                     nvidia_text = REQUIRES_RESTART;
                 } else {
+                    compute_text = REQUIRES_RESTART;
                     hybrid_text = REQUIRES_RESTART;
                     integrated_text = REQUIRES_RESTART;
                 }
@@ -198,6 +214,7 @@ export class Ext {
                     integrated: this.attach_graphics_profile("Integrated", integrated_text, "integrated"),
                     nvidia: this.attach_graphics_profile("NVIDIA", nvidia_text, "nvidia"),
                     hybrid: this.attach_graphics_profile("Hybrid", hybrid_text, "hybrid"),
+                    compute: this.attach_graphics_profile("Compute", compute_text, "compute"),
                 };
 
                 this.set_graphics_profile_ornament(this.graphics_profiles, graphics);
@@ -208,9 +225,11 @@ export class Ext {
                         let graphics: string = proxy.GetGraphicsSync();
 
                         let current = null;
-                        if (graphics == "hybrid") {
+                        if (graphics == "compute") {
+                            current = "Compute";
+                        } else if (graphics == "hybrid") {
                             current = "Hybrid";
-                        } else if (graphics == "integrated" || graphics == "intel") {
+                        } else if (graphics == "integrated") {
                             current = "Integrated";
                         }
 
@@ -240,9 +259,10 @@ export class Ext {
         this.performance.destroy();
 
         if (this.graphics_profiles) {
+            this.graphics_profiles.compute.destroy();
+            this.graphics_profiles.hybrid.destroy();
             this.graphics_profiles.integrated.destroy();
             this.graphics_profiles.nvidia.destroy();
-            this.graphics_profiles.hybrid.destroy();
         }
     }
 
@@ -272,9 +292,11 @@ export class Ext {
         this.reset_graphics_ornament(graphics_profiles);
 
         let obj;
-        if (graphics == "hybrid") {
+        if (graphics == "compute") {
+            obj = graphics_profiles.compute;
+        } else if (graphics == "hybrid") {
             obj = graphics_profiles.hybrid;
-        } else if (graphics == "integrated" ||  graphics == "intel") {
+        } else if (graphics == "integrated") {
             obj = graphics_profiles.integrated;
         } else if (graphics == "nvidia") {
             obj = graphics_profiles.nvidia;
@@ -351,22 +373,32 @@ export class Ext {
                     dialog._content.description = _("Switching to ") + name + _(" will close all open apps and restart your device. You may lose any unsaved work.");
 
                     let reboot_msg = _("Will be enabled on\nthe next restart.");
-                    if (name == "Hybrid") {
+                    if (name == "Compute") {
+                        this.graphics_profiles.compute.description.text = reboot_msg;
+                        this.graphics_profiles.compute.description.show();
+
+                        this.graphics_profiles.hybrid.description.hide();
+                        this.graphics_profiles.integrated.description.hide();
+                        this.graphics_profiles.nvidia.description.hide();
+                    } else if (name == "Hybrid") {
                         this.graphics_profiles.hybrid.description.text = reboot_msg;
                         this.graphics_profiles.hybrid.description.show();
 
+                        this.graphics_profiles.compute.description.hide();
                         this.graphics_profiles.integrated.description.hide();
                         this.graphics_profiles.nvidia.description.hide();
                     } else if (name == "Integrated") {
                         this.graphics_profiles.integrated.description.text = reboot_msg;
                         this.graphics_profiles.integrated.description.show();
 
+                        this.graphics_profiles.compute.description.hide();
                         this.graphics_profiles.hybrid.description.hide();
                         this.graphics_profiles.nvidia.description.hide();
                     } else {
                         this.graphics_profiles.nvidia.description.text = reboot_msg;
                         this.graphics_profiles.nvidia.description.show();
 
+                        this.graphics_profiles.compute.description.hide();
                         this.graphics_profiles.hybrid.description.hide();
                         this.graphics_profiles.integrated.description.hide();
                     }
@@ -408,6 +440,7 @@ export class Ext {
     }
 
     reset_graphics_ornament(graphics_profiles: GObj) {
+        graphics_profiles.compute.setOrnament(Ornament.NONE);
         graphics_profiles.hybrid.setOrnament(Ornament.NONE);
         graphics_profiles.integrated.setOrnament(Ornament.NONE);
         graphics_profiles.nvidia.setOrnament(Ornament.NONE);
