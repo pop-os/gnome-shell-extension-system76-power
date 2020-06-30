@@ -174,13 +174,13 @@ export class Ext {
 
                 if (DISPLAY_REQUIRES_NVIDIA) {
                     if (graphics == "hybrid") {
-                        integrated_text = REQUIRES_RESTART;
-                        nvidia_text = ENABLE_FOR_EXT_DISPLAYS;
+                        integrated_text = DISABLE_EXT_DISPLAYS;
+                        nvidia_text = REQUIRES_RESTART;
                     } else if (graphics == "integrated" || graphics == "intel") {
-                        hybrid_text = REQUIRES_RESTART;
+                        hybrid_text = ENABLE_FOR_EXT_DISPLAYS;
                         nvidia_text = ENABLE_FOR_EXT_DISPLAYS;
                     } else {
-                        hybrid_text = DISABLE_EXT_DISPLAYS;
+                        hybrid_text = REQUIRES_RESTART;
                         integrated_text = DISABLE_EXT_DISPLAYS;
                     }
                 } else if (graphics == "hybrid") {
@@ -208,9 +208,7 @@ export class Ext {
                         let graphics: string = proxy.GetGraphicsSync();
 
                         let current = null;
-                        if (graphics == "hybrid") {
-                            current = "Hybrid";
-                        } else if (graphics == "integrated" || graphics == "intel") {
+                        if (graphics == "integrated") {
                             current = "Integrated";
                         }
 
