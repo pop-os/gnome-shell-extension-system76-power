@@ -176,20 +176,20 @@ export class Ext {
 
                 if (DISPLAY_REQUIRES_NVIDIA) {
                     if (graphics == "compute") {
-                        hybrid_text = REQUIRES_RESTART;
+                        hybrid_text = ENABLE_FOR_EXT_DISPLAYS;
                         integrated_text = REQUIRES_RESTART;
                         nvidia_text = ENABLE_FOR_EXT_DISPLAYS;
                     } else if (graphics == "hybrid") {
-                        compute_text = REQUIRES_RESTART;
-                        integrated_text = REQUIRES_RESTART;
-                        nvidia_text = ENABLE_FOR_EXT_DISPLAYS;
+                        compute_text = DISABLE_EXT_DISPLAYS;
+                        integrated_text = DISABLE_EXT_DISPLAYS;
+                        nvidia_text = REQUIRES_RESTART;
                     } else if (graphics == "integrated") {
                         compute_text = REQUIRES_RESTART;
-                        hybrid_text = REQUIRES_RESTART;
+                        hybrid_text = ENABLE_FOR_EXT_DISPLAYS;
                         nvidia_text = ENABLE_FOR_EXT_DISPLAYS;
                     } else {
                         compute_text = DISABLE_EXT_DISPLAYS;
-                        hybrid_text = DISABLE_EXT_DISPLAYS;
+                        hybrid_text = REQUIRES_RESTART;
                         integrated_text = DISABLE_EXT_DISPLAYS;
                     }
                 } else if (graphics == "compute") {
@@ -227,13 +227,11 @@ export class Ext {
                         let current = null;
                         if (graphics == "compute") {
                             current = "Compute";
-                        } else if (graphics == "hybrid") {
-                            current = "Hybrid";
                         } else if (graphics == "integrated") {
                             current = "Integrated";
                         }
 
-                        if (current) this.hotplug(current, this.graphics_profiles.nvidia, "NVIDIA", "nvidia");
+                        if (current) this.hotplug(current, this.graphics_profiles.hybrid, "Hybrid", "hybrid");
                     }
                 });
             }
@@ -331,8 +329,8 @@ export class Ext {
         this.notified = true;
         let dialog = new PopDialog(
             "video-display-symbolic",
-            _("Switch to ") + name + _(" to use external displays"),
-            _("External displays are connected to the NVIDIA card. Switch to NVIDIA graphics to use them."),
+            _("Switch to ") + name + GRAPHICS + _(" to use external displays"),
+            _("External displays are connected to the NVIDIA card. Switch to ") + name + _(" graphics to use them."),
         );
         dialog.open();
 
