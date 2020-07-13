@@ -232,6 +232,12 @@ export class Ext {
                         }
 
                         if (current) this.hotplug(current, this.graphics_profiles.hybrid, "Hybrid", "hybrid");
+
+                        if (graphics == "hybrid") {
+                            // Force display server update
+                            // XXX: Use org.gnome.Mutter.DisplayConfig instead?
+                            Util.trySpawn(["xrandr", "-q"]);
+                        }
                     }
                 });
             }
