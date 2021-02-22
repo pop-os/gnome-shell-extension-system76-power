@@ -1,3 +1,9 @@
+gnome-shell-extension-system76-power (2.0.1) focal; urgency=medium
+
+  * Add oryp7
+
+ -- Jeremy Soller <jeremy@system76.com>  Mon, 22 Feb 2021 08:27:28 -0700
+
 gnome-shell-extension-system76-power (2.0.0) focal; urgency=medium
 
   * Converted to TypeScript (>= 3.8)
