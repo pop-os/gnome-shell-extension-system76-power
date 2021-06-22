@@ -1,3 +1,4 @@
+const GLib = imports.gi.GLib;
 const Clutter = imports.gi.Clutter;
 const Gio = imports.gi.Gio;
 const GObject = imports.gi.GObject;
@@ -10,13 +11,18 @@ const Main = imports.ui.main;
 const ModalDialog = imports.ui.modalDialog;
 const PopupMenu = imports.ui.popupMenu;
 const Ornament = imports.ui.popupMenu.Ornament;
-
 const PowerDaemon = Gio.DBusProxy.makeProxyWrapper(
 '<node>\
   <interface name="com.system76.PowerDaemon">\
     <method name="Performance"/>\
     <method name="Balanced"/>\
     <method name="Battery"/>\
+    <method name="GetChargeThresholds">\
+        <arg name="thresholds" type="yy" direction="out"/>\
+    </method>\
+    <method name="SetChargeThresholds">\
+        <arg name="thresholds" type="yy" direction="in"/>\
+    </method>\
     <method name="GetProfile">\
         <arg name="profile" type="s" direction="out"/>\
     </method>\
@@ -145,18 +151,26 @@ interface GraphicsProfiles {
     compute: GObj;
 }
 
+interface ThresholdProfiles {
+    least: GObj;
+    balanced: GObj;
+    full: GObj;
+}
+
 export class Ext {
     bus: GObj = new PowerDaemon(Gio.DBus.system, 'com.system76.PowerDaemon', '/com/system76/PowerDaemon');
-
+   
     battery: GObj;
     balanced: GObj;
     performance: GObj;
 
+    threshold_profiles: ThresholdProfiles | null = null;
     graphics_profiles: GraphicsProfiles | null = null;
 
     power_menu: GObj = Main.panel.statusArea['aggregateMenu']._power._item.menu;
     graphics_separator: GObj = new PopupMenu.PopupSeparatorMenuItem();
     profile_separator: GObj = new PopupMenu.PopupSeparatorMenuItem();
+    threshold_separator: GObj = new PopupMenu.PopupSeparatorMenuItem();
 
     switched: boolean = false;
     notified: boolean = false;
@@ -252,16 +266,40 @@ export class Ext {
         this.balanced = this.attach_power_profile(_("Balanced"), this.bus.BalancedRemote);
         this.performance = this.attach_power_profile(_("High Performance"), this.bus.PerformanceRemote);
 
-        this.set_power_profile_ornament(this.bus.GetProfileSync());
+        this.power_menu.addMenuItem(this.threshold_separator);
+
+
+
         this.bus.connectSignal("PowerProfileSwitch", (_proxy: any, _sender: any, [profile]: string[]) => {
             this.set_power_profile_ornament(profile);
         });
+        
+        let threshold: any = this.bus.GetChargeThresholdsSync() || "96,100";
+        this.threshold_profiles = {
+            least: this.attach_threshold_profile(_("Least Charge"),[50,60]),
+            balanced:  this.attach_threshold_profile(_("Balanced"),[86,90]),
+            full:  this.attach_threshold_profile(_("Full Charge"),[96,100]),
+        };
+        log('threshold is: ' + threshold)
+        this.set_threshold_profile_ornament(this.threshold_profiles, threshold);
+        const convertedThreshold =  new GLib.Variant('yy', [50,60])
+        log(convertedThreshold)
+        this.bus.SetChargeThresholdsRemote(convertedThreshold, (_result: any, error: string | null) => {
+            log('attempt to set charge thresholds')
+            log(_result.toString())
+            log(error ?? '')
+        });
+
     }
 
     destroy() {
         this.battery.destroy();
         this.balanced.destroy();
         this.performance.destroy();
+
+        this.threshold_profiles?.balanced.destroy();
+        this.threshold_profiles?.full.destroy();
+        this.threshold_profiles?.least.destroy();
 
         if (this.graphics_profiles) {
             this.graphics_profiles.compute.destroy();
@@ -288,6 +326,22 @@ export class Ext {
             dbus_method.call(this.bus, () => {
                 item.setOrnament(Ornament.DOT);
             });
+        });
+        this.power_menu.addMenuItem(obj);
+        return obj;
+    }
+
+    attach_threshold_profile(name: string, threshold: Array<number>): any {
+        let obj = new PopupMenu.PopupMenuItem(name);
+        const convertedThreshold =  new GLib.Variant('yy', threshold)
+        obj.connect('activate', (item: any) => {
+            this.reset_threshold_ornament();
+            this.bus.SetChargeThresholdsRemote(convertedThreshold, (_result: any, error: string | null) => {
+                log('attempt to set charge thresholds')
+                log(_result.toString())
+                log(error ?? '')
+            });
+            item.setOrnament(Ornament.DOT);
         });
         this.power_menu.addMenuItem(obj);
         return obj;
@@ -324,7 +378,24 @@ export class Ext {
 
         if (obj) obj.setOrnament(Ornament.DOT);
 
-        log("power profile was set: '" + active_profile + "'");
+    }
+
+    set_threshold_profile_ornament(threshold_profiles: GObj, threshold: any) {
+        threshold = threshold.toString()
+        this.reset_threshold_ornament();
+        let obj;
+        if (threshold == "50,60") {
+            obj = threshold_profiles.least;
+            log('set max_lifespan')
+        } else if (threshold == "86,90") {
+            obj = threshold_profiles.balanced;
+            log('set balanced')
+        } else if (threshold == "96,100" || threshold == "0,100") {
+            obj = threshold_profiles.full;
+            log('set full_charge')
+        }
+
+        obj.setOrnament(Ornament.DOT);
     }
 
     /** Display dialog on hotplug event. */
@@ -455,6 +526,12 @@ export class Ext {
         this.performance.setOrnament(Ornament.NONE);
         this.balanced.setOrnament(Ornament.NONE);
         this.battery.setOrnament(Ornament.NONE);
+    }
+
+    reset_threshold_ornament() {
+        this.threshold_profiles?.least.setOrnament(Ornament.NONE);
+        this.threshold_profiles?.balanced.setOrnament(Ornament.NONE);
+        this.threshold_profiles?.full.setOrnament(Ornament.NONE);
     }
 }
 
