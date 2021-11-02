@@ -1,3 +1,9 @@
+gnome-shell-extension-system76-power (2.0.3) focal; urgency=medium
+
+  * Add kudu6
+
+ -- Tim Crawford <tcrawford@system76.com>  Tue, 02 Nov 2021 10:25:50 -0600
+
 gnome-shell-extension-system76-power (2.0.2) focal; urgency=medium
 
   * Enable support for GNOME 40
