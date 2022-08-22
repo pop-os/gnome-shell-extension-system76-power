@@ -66,6 +66,7 @@ const DISCRETE_EXTERNAL_DISPLAY_MODELS = [
     "oryp7",
     "oryp8",
     "oryp9",
+    "oryp10",
 ];
 
 let DISPLAY_REQUIRES_NVIDIA = false;
