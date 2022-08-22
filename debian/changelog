@@ -1,3 +1,9 @@
+gnome-shell-extension-system76-power (2.0.6) focal; urgency=medium
+
+  * Add oryp10
+
+ -- Tim Crawford <tcrawford@system76.com>  Mon, 22 Aug 2022 10:37:43 -0600
+
 gnome-shell-extension-system76-power (2.0.5) focal; urgency=medium
 
   * Add gaze17-3050 and oryp9
