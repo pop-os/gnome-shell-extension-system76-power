@@ -56,6 +56,8 @@ const DMI_PRODUCT_VERSION_PATH = "/sys/class/dmi/id/product_version";
 const DISCRETE_EXTERNAL_DISPLAY_MODELS = [
     "addw1",
     "addw2",
+    "addw3",
+    "bonw15",
     "gaze17-3050",
     "gaze17-3060-b",
     "kudu6",
@@ -67,6 +69,8 @@ const DISCRETE_EXTERNAL_DISPLAY_MODELS = [
     "oryp8",
     "oryp9",
     "oryp10",
+    "oryp11",
+    "serw13",
 ];
 
 let DISPLAY_REQUIRES_NVIDIA = false;
