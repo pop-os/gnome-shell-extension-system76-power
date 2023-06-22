@@ -62,13 +62,24 @@ const DMI_PRODUCT_VERSION_PATH = "/sys/class/dmi/id/product_version";
 const DISCRETE_EXTERNAL_DISPLAY_MODELS = [
     "addw1",
     "addw2",
+    "addw3",
+    "bonw15",
+    "gaze17-3050",
+    "gaze17-3060-b",
+    "kudu6",
     "oryp4",
     "oryp4-b",
     "oryp5",
     "oryp6",
     "oryp7",
+    "oryp8",
+    "oryp9",
+    "oryp10",
+    "oryp11",
+    "serw13",
 ];
 
+let PRODUCT_VERSION = "";
 let DISPLAY_REQUIRES_NVIDIA = false;
 
 let ext: Ext | null = null;
@@ -81,8 +92,8 @@ function log(text: string) {
 function init() {
     let file = Gio.File.new_for_path(DMI_PRODUCT_VERSION_PATH);
     let [, contents] = file.load_contents(null);
-    let product_version = ByteArray.toString(contents).trim();
-    DISPLAY_REQUIRES_NVIDIA = -1 !== DISCRETE_EXTERNAL_DISPLAY_MODELS.indexOf(product_version);
+    PRODUCT_VERSION = ByteArray.toString(contents).trim();
+    DISPLAY_REQUIRES_NVIDIA = -1 !== DISCRETE_EXTERNAL_DISPLAY_MODELS.indexOf(PRODUCT_VERSION);
 }
 
 // @ts-ignore
@@ -234,7 +245,7 @@ export class Ext {
 
                 this.set_graphics_profile_ornament(this.graphics_profiles, graphics);
 
-                this.bus.connectSignal("HotPlugDetect", (proxy: any) => {
+                this.bus.connectSignal("HotPlugDetect", (proxy: any, _nameOwner: any, args: any) => {
                     if (this.graphics_profiles) {
                         log("hotplug event detected");
                         let graphics: string = proxy.GetGraphicsSync();
@@ -246,7 +257,11 @@ export class Ext {
                             current = "Integrated";
                         }
 
-                        if (current) this.hotplug(current, this.graphics_profiles.hybrid, "Hybrid", "hybrid");
+                        if (current) {
+                            this.hotplug(current, this.graphics_profiles.hybrid, "Hybrid", "hybrid");
+                        } else if (PRODUCT_VERSION == "serw13" && args[0] == 0) {
+                            this.hotplug_less_capable();
+                        }
 
                         if (graphics == "hybrid") {
                             // Force display server update
@@ -424,6 +439,24 @@ export class Ext {
                 this.graphics_activate(item, name, vendor);
             },
             label: _("Switch to ") + name,
+            key: Clutter.Enter
+        }]);
+    }
+
+    /** Display dialog on hotplug to less capable port event. */
+    hotplug_less_capable() {
+        let dialog = new PopDialog(
+            "video-display-symbolic",
+            _("The Thunderbolt Port is Recommended"),
+            _("Use the Thunderbolt port for the best external monitor\nexperience. It is located next to the USB-C port you\nplugged into."),
+        );
+        dialog.open();
+
+        dialog.setButtons([{
+            action: () => {
+                dialog.close();
+            },
+            label: _("Close"),
             key: Clutter.Enter
         }]);
     }
