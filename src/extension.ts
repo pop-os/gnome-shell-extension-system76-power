@@ -61,6 +61,7 @@ const DISCRETE_EXTERNAL_DISPLAY_MODELS = [
     "bonw15",
     "gaze17-3050",
     "gaze17-3060-b",
+    "gaze19",
     "kudu6",
     "oryp4",
     "oryp4-b",
