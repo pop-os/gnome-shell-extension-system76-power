@@ -95,6 +95,14 @@ function init() {
 // @ts-ignore
 function enable() {
     if (null === ext) {
+        // Remove power profiles menu
+        const menu = Main.panel.statusArea['aggregateMenu']
+        const powerProfilesMenu = menu._powerProfiles
+        if (powerProfilesMenu) {
+            menu._indicators.remove_child(powerProfilesMenu)
+            menu.menu.box.remove_child(powerProfilesMenu.menu.actor)
+        }
+
         ext = new Ext();
     }
 }
