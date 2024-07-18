@@ -59,6 +59,7 @@ const DISCRETE_EXTERNAL_DISPLAY_MODELS = [
     "addw3",
     "addw4",
     "bonw15",
+    "bonw15-b",
     "gaze17-3050",
     "gaze17-3060-b",
     "gaze19",
