@@ -12,4 +12,5 @@ Architecture: all
 Depends:
     system76-power (>= 1.0.0~),
     ${misc:Depends}
+Provides: system76-power-applet-virtual
 Description: Gnome-shell extension for System76 Power Management
