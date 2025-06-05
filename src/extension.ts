@@ -76,6 +76,7 @@ const DISCRETE_EXTERNAL_DISPLAY_MODELS = [
     "oryp11",
     "oryp12",
     "serw13",
+    "serw14",
 ];
 
 let PRODUCT_VERSION = "";
