@@ -58,6 +58,7 @@ const DISCRETE_EXTERNAL_DISPLAY_MODELS = [
     "addw2",
     "addw3",
     "addw4",
+    "addw5",
     "bonw15",
     "bonw15-b",
     "bonw16",
