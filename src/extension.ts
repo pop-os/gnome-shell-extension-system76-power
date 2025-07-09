@@ -20,6 +20,9 @@ const PowerDaemon = Gio.DBusProxy.makeProxyWrapper(
     <method name="GetProfile">\
         <arg name="profile" type="s" direction="out"/>\
     </method>\
+    <method name="GetExternalDisplaysRequireDgpu">\
+      <arg name="required" type="b" direction="out"/>\
+    </method>\
     <method name="GetGraphics">\
       <arg name="vendor" type="s" direction="out"/>\
     </method>\
@@ -53,35 +56,8 @@ const ENABLE_FOR_EXT_DISPLAYS: string = _("Enable for external displays.\nRequir
 const REQUIRES_RESTART: string = _("Requires restart.");
 
 const DMI_PRODUCT_VERSION_PATH = "/sys/class/dmi/id/product_version";
-const DISCRETE_EXTERNAL_DISPLAY_MODELS = [
-    "addw1",
-    "addw2",
-    "addw3",
-    "addw4",
-    "addw5",
-    "bonw15",
-    "bonw15-b",
-    "bonw16",
-    "gaze17-3050",
-    "gaze17-3060-b",
-    "gaze19",
-    "kudu6",
-    "oryp4",
-    "oryp4-b",
-    "oryp5",
-    "oryp6",
-    "oryp7",
-    "oryp8",
-    "oryp9",
-    "oryp10",
-    "oryp11",
-    "oryp12",
-    "serw13",
-    "serw14",
-];
 
 let PRODUCT_VERSION = "";
-let DISPLAY_REQUIRES_NVIDIA = false;
 
 let ext: Ext | null = null;
 
@@ -94,7 +70,6 @@ function init() {
     let file = Gio.File.new_for_path(DMI_PRODUCT_VERSION_PATH);
     let [, contents] = file.load_contents(null);
     PRODUCT_VERSION = ByteArray.toString(contents).trim();
-    DISPLAY_REQUIRES_NVIDIA = -1 !== DISCRETE_EXTERNAL_DISPLAY_MODELS.indexOf(PRODUCT_VERSION);
 }
 
 // @ts-ignore
@@ -192,6 +167,7 @@ export class Ext {
 
         try {
             if (this.bus.GetSwitchableSync() == "true") {
+                let ext_requires_nvidia: boolean = this.bus.GetExternalDisplaysRequireDgpuSync() == "true";
                 let graphics: string = this.bus.GetGraphicsSync();
 
                 this.power_menu.addMenuItem(this.graphics_separator);
@@ -201,7 +177,7 @@ export class Ext {
                     integrated_text: string | null = null,
                     nvidia_text: string | null = null;
 
-                if (DISPLAY_REQUIRES_NVIDIA) {
+                if (ext_requires_nvidia) {
                     if (graphics == "compute") {
                         hybrid_text = ENABLE_FOR_EXT_DISPLAYS;
                         integrated_text = REQUIRES_RESTART;
