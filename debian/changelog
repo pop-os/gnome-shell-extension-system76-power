@@ -1,3 +1,9 @@
+gnome-shell-extension-system76-power (2.0.8) focal; urgency=medium
+
+  * Ask system76-power if system requires NVIDIA GPU for external displays
+
+ -- Jeremy Soller <jeremy@system76.com>  Fri, 11 Jul 2025 12:09:28 -0600
+
 gnome-shell-extension-system76-power (2.0.7) focal; urgency=medium
 
   * Provide system76-power-applet-virtual
