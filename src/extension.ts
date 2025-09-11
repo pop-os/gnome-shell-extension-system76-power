@@ -254,9 +254,9 @@ export class Ext {
 
         this.power_menu.addMenuItem(this.profile_separator);
 
-        this.battery = this.attach_power_profile(_("Battery Life"), this.bus.BatteryRemote);
-        this.balanced = this.attach_power_profile(_("Balanced"), this.bus.BalancedRemote);
-        this.performance = this.attach_power_profile(_("High Performance"), this.bus.PerformanceRemote);
+        this.battery = this.attach_power_profile(_("Battery Life"), this.bus.BatteryRemote, "Battery");
+        this.balanced = this.attach_power_profile(_("Balanced"), this.bus.BalancedRemote, "Balanced");
+        this.performance = this.attach_power_profile(_("High Performance"), this.bus.PerformanceRemote, "Performance");
 
         this.set_power_profile_ornament(this.bus.GetProfileSync());
         this.bus.connectSignal("PowerProfileSwitch", (_proxy: any, _sender: any, [profile]: string[]) => {
@@ -287,9 +287,14 @@ export class Ext {
         return obj;
     }
 
-    attach_power_profile(name: string, dbus_method: any): any {
+    attach_power_profile(name: string, dbus_method: any, targetProfile: string): any {
         let obj = new PopupMenu.PopupMenuItem(name);
         obj.connect('activate', (item: any) => {
+            const current = this.bus.GetProfileSync();
+            if (current === targetProfile) {
+                return;
+            }
+
             this.reset_profile_ornament();
             dbus_method.call(this.bus, () => {
                 item.setOrnament(Ornament.DOT);
@@ -383,6 +388,10 @@ export class Ext {
 
     /** Ask if the user wants to switch graphics, and then switches graphics. */
     graphics_activate(item: any, name: string, vendor: string) {
+        const current = this.bus.GetGraphicsSync();
+        if (current === vendor) {
+            return;
+        }
         this.switched = true;
         if (!item.setting) {
             item.setting = true;
