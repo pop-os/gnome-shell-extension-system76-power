@@ -1,15 +1,24 @@
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GObject = imports.gi.GObject;
-const St = imports.gi.St;
-const Util = imports.misc.util;
-const ByteArray = imports.byteArray;
+import Clutter from 'gi://Clutter';
+import Gio from 'gi://Gio';
+import GObject from 'gi://GObject';
+import St from 'gi://St';
 
-const Dialog = imports.ui.dialog;
-const Main = imports.ui.main;
-const ModalDialog = imports.ui.modalDialog;
-const PopupMenu = imports.ui.popupMenu;
-const Ornament = imports.ui.popupMenu.Ornament;
+import * as Util from 'resource:///org/gnome/shell/misc/util.js';
+
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as Dialog from 'resource:///org/gnome/shell/ui/dialog.js';
+import * as ModalDialog from 'resource:///org/gnome/shell/ui/modalDialog.js';
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import { Ornament } from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import { Slider } from 'resource:///org/gnome/shell/ui/slider.js';
+
+const ByteArray = imports.byteArray;
+const Lang = imports.lang;
+
+function _(s: string): string {
+    return s;
+}
 
 const PowerDaemon = Gio.DBusProxy.makeProxyWrapper(
 '<node>\
@@ -19,9 +28,6 @@ const PowerDaemon = Gio.DBusProxy.makeProxyWrapper(
     <method name="Battery"/>\
     <method name="GetProfile">\
         <arg name="profile" type="s" direction="out"/>\
-    </method>\
-    <method name="GetExternalDisplaysRequireDgpu">\
-      <arg name="required" type="b" direction="out"/>\
     </method>\
     <method name="GetGraphics">\
       <arg name="vendor" type="s" direction="out"/>\
@@ -39,6 +45,13 @@ const PowerDaemon = Gio.DBusProxy.makeProxyWrapper(
       <arg name="power" type="b" direction="in"/>\
     </method>\
     <method name="AutoGraphicsPower"/>\
+    <method name="GetChargeThresholds">\
+      <arg name="start" type="y" direction="out"/>\
+      <arg name="end" type="y" direction="out"/>\
+    </method>\
+    <method name="SetChargeThresholds">\
+      <arg name="thresholds" type="(yy)" direction="in"/>\
+    </method>\
     <signal name="HotPlugDetect">\
       <arg name="port" type="t"/>\
     </signal>\
@@ -56,41 +69,58 @@ const ENABLE_FOR_EXT_DISPLAYS: string = _("Enable for external displays.\nRequir
 const REQUIRES_RESTART: string = _("Requires restart.");
 
 const DMI_PRODUCT_VERSION_PATH = "/sys/class/dmi/id/product_version";
+const DISCRETE_EXTERNAL_DISPLAY_MODELS = [
+    "addw1",
+    "addw2",
+    "addw3",
+    "addw4",
+    "bonw15",
+    "bonw15-b",
+    "bonw16",
+    "gaze17-3050",
+    "gaze17-3060-b",
+    "gaze19",
+    "kudu6",
+    "oryp4",
+    "oryp4-b",
+    "oryp5",
+    "oryp6",
+    "oryp7",
+    "oryp8",
+    "oryp9",
+    "oryp10",
+    "oryp11",
+    "oryp12",
+    "serw13",
+];
 
 let PRODUCT_VERSION = "";
+let DISPLAY_REQUIRES_NVIDIA = false;
 
 let ext: Ext | null = null;
 
 function log(text: string) {
-    global.log("gnome-shell-extension-system76-power: " + text);
+    (globalThis as any).log("gnome-shell-extension-system76-power: " + text);
 }
 
-// @ts-ignore
-function init() {
-    let file = Gio.File.new_for_path(DMI_PRODUCT_VERSION_PATH);
-    let [, contents] = file.load_contents(null);
-    PRODUCT_VERSION = ByteArray.toString(contents).trim();
-}
-
-// @ts-ignore
-function enable() {
-    if (null === ext) {
-        // Remove power profiles menu
-        const menu = Main.panel.statusArea['aggregateMenu']
-        const powerProfilesMenu = menu._powerProfiles
-        if (powerProfilesMenu) {
-            menu._indicators.remove_child(powerProfilesMenu)
-            menu.menu.box.remove_child(powerProfilesMenu.menu.actor)
-        }
-
-        ext = new Ext();
+export default class System76PowerExtension {
+    init() {
+        let file = Gio.File.new_for_path(DMI_PRODUCT_VERSION_PATH);
+        let [, contents] = file.load_contents(null);
+        PRODUCT_VERSION = ByteArray.toString(contents).trim();
+        DISPLAY_REQUIRES_NVIDIA = -1 !== DISCRETE_EXTERNAL_DISPLAY_MODELS.indexOf(PRODUCT_VERSION);
     }
-}
 
-// @ts-ignore
-function disable() {
-    if (ext) ext.destroy();
-    ext = null;
+    enable() {
+        if (null === ext) {
+            ext = new Ext();
+        }
+    }
+
+    disable() {
+        if (ext) ext.destroy();
+        ext = null;
+    }
 }
 
 var PopDialog = GObject.registerClass(
@@ -100,7 +130,7 @@ var PopDialog = GObject.registerClass(
 
             // NOTE: Icons were removed in 3.36
             this._content = new Dialog.MessageDialogContent({ title, description });
-            this.contentLayout.add(this._content);
+            this.contentLayout.add_child(this._content);
         }
     }
 );
@@ -127,10 +157,45 @@ var PopupGraphicsMenuItem = GObject.registerClass(
                 this.description.hide();
             }
 
-            this.box.add(this.label);
-            this.box.add(this.description);
-            this.actor.add(this.box);
+            this.box.add_child(this.label);
+            this.box.add_child(this.description);
+            this.actor.add_child(this.box);
             this.actor.label_actor = this.box;
+        }
+    }
+);
+
+var ChargeThresholdSliderItem = GObject.registerClass(
+    class ChargeThresholdSliderItem extends PopupMenu.PopupBaseMenuItem {
+        _init(title: string, initial: number) {
+            super._init({ activate: false });
+
+            this._title = title;
+
+            this.box = new St.BoxLayout({ vertical: true, x_expand: true });
+
+            this.label = new St.Label({
+                style_class: "pop-menu-slider-title",
+                text: `${title}: ${initial}%`,
+            });
+
+            this.slider = new Slider(initial / 100);
+            this.slider.x_expand = true;
+            this.slider.connect('notify::value', () => {
+                this.label.text = `${this._title}: ${this.percent}%`;
+            });
+
+            this.box.add_child(this.label);
+            this.box.add_child(this.slider);
+            this.actor.add_child(this.box);
+        }
+
+        get percent(): number {
+            return Math.round(this.slider.value * 100);
+        }
+
+        set percent(value: number) {
+            this.slider.value = value / 100;
         }
     }
 );
@@ -146,6 +211,52 @@ interface GraphicsProfiles {
     compute: GObj;
 }
 
+var PanelIndicator = GObject.registerClass(
+    class PanelIndicator extends PanelMenu.Button {
+      _init() {
+        super._init(0.0, "S76Panel", false);
+
+        this.add_style_class_name('panel-status-button');
+
+        this._indicatorLayout = new St.BoxLayout({
+            vertical: false,
+            reactive: true,
+            can_focus: true,
+            track_hover: true
+        });
+
+        this._binProfile = new St.Bin({
+            reactive: true,
+            can_focus: true,
+            track_hover: true
+        });
+
+        this._iconProfile = new St.Icon({
+            icon_name: 'gnome-power-manager-symbolic',
+            style_class: 'system-status-icon'
+        });
+
+        this._binProfile.add_child(this._iconProfile);
+
+        this._indicatorLayout.add_child(this._binProfile);
+
+        // add indicator to panel icon
+        this.add_child(this._indicatorLayout);
+
+        this.menu.connect('open-state-changed', Lang.bind(this._indicatorLayout, (_: any, open: boolean) => {
+            if (open)
+                this._indicatorLayout.add_style_pseudo_class('active');
+            else
+                this._indicatorLayout.remove_style_pseudo_class('active');
+
+        }));
+
+        Main.panel.addToStatusArea('s76-power.panel', this);
+      }
+
+    }
+);
+
 export class Ext {
     bus: GObj = new PowerDaemon(Gio.DBus.system, 'com.system76.PowerDaemon', '/com/system76/PowerDaemon');
 
@@ -155,9 +266,14 @@ export class Ext {
 
     graphics_profiles: GraphicsProfiles | null = null;
 
-    power_menu: GObj = Main.panel.statusArea['aggregateMenu']._power._item.menu;
+    // power_menu: GObj = Main.panel.statusArea['aggregateMenu']._power._item.menu;
+    panel_indicator = new PanelIndicator();
+    power_menu = this.panel_indicator.menu;
     graphics_separator: GObj = new PopupMenu.PopupSeparatorMenuItem();
     profile_separator: GObj = new PopupMenu.PopupSeparatorMenuItem();
+    charge_separator: GObj | null = null;
+    charge_start_item: GObj | null = null;
+    charge_end_item: GObj | null = null;
 
     switched: boolean = false;
     notified: boolean = false;
@@ -167,7 +283,6 @@ export class Ext {
 
         try {
             if (this.bus.GetSwitchableSync() == "true") {
-                let ext_requires_nvidia: boolean = this.bus.GetExternalDisplaysRequireDgpuSync() == "true";
                 let graphics: string = this.bus.GetGraphicsSync();
 
                 this.power_menu.addMenuItem(this.graphics_separator);
@@ -177,7 +292,7 @@ export class Ext {
                     integrated_text: string | null = null,
                     nvidia_text: string | null = null;
 
-                if (ext_requires_nvidia) {
+                if (DISPLAY_REQUIRES_NVIDIA) {
                     if (graphics == "compute") {
                         hybrid_text = ENABLE_FOR_EXT_DISPLAYS;
                         integrated_text = REQUIRES_RESTART;
@@ -262,6 +377,49 @@ export class Ext {
         this.bus.connectSignal("PowerProfileSwitch", (_proxy: any, _sender: any, [profile]: string[]) => {
             this.set_power_profile_ornament(profile);
         });
+
+        try {
+            let [start, end]: [number, number] = this.bus.GetChargeThresholdsSync();
+
+            this.charge_separator = new PopupMenu.PopupSeparatorMenuItem();
+            this.power_menu.addMenuItem(this.charge_separator);
+
+            const start_item = new ChargeThresholdSliderItem(_("Charging Starts At"), start);
+            const end_item = new ChargeThresholdSliderItem(_("Charging Stops At"), end);
+            this.charge_start_item = start_item;
+            this.charge_end_item = end_item;
+
+            start_item.slider.connect('drag-end', () => {
+                let s = start_item.percent;
+                if (s >= end_item.percent) {
+                    s = Math.max(0, end_item.percent - 1);
+                    start_item.percent = s;
+                }
+                this.set_charge_thresholds(s, end_item.percent);
+            });
+
+            end_item.slider.connect('drag-end', () => {
+                let e = end_item.percent;
+                if (e <= start_item.percent) {
+                    e = Math.min(100, start_item.percent + 1);
+                    end_item.percent = e;
+                }
+                this.set_charge_thresholds(start_item.percent, e);
+            });
+
+            this.power_menu.addMenuItem(start_item);
+            this.power_menu.addMenuItem(end_item);
+        } catch (error) {
+            log("charge thresholds not supported: " + error);
+        }
+    }
+
+    set_charge_thresholds(start: number, end: number) {
+        try {
+            this.bus.SetChargeThresholdsSync([start, end]);
+        } catch (error) {
+            log("failed to set charge thresholds: " + error);
+        }
     }
 
     destroy() {
@@ -275,6 +433,16 @@ export class Ext {
             this.graphics_profiles.integrated.destroy();
             this.graphics_profiles.nvidia.destroy();
         }
+        if (this.charge_separator) {
+            this.charge_separator.destroy();
+        }
+        if (this.charge_start_item) {
+            this.charge_start_item.destroy();
+        }
+        if (this.charge_end_item) {
+            this.charge_end_item.destroy();
+        }
+        this.panel_indicator.destroy();
     }
 
     attach_graphics_profile(name: string, text: string | null, profile: string) {
@@ -292,7 +460,7 @@ export class Ext {
         obj.connect('activate', (item: any) => {
             this.reset_profile_ornament();
             dbus_method.call(this.bus, () => {
-                item.setOrnament(Ornament.DOT);
+                item.setOrnament(Ornament.CHECK);
             });
         });
         this.power_menu.addMenuItem(obj);
@@ -313,7 +481,7 @@ export class Ext {
             obj = graphics_profiles.nvidia;
         }
 
-        obj.setOrnament(Ornament.DOT);
+        obj.setOrnament(Ornament.CHECK);
     }
 
     set_power_profile_ornament(active_profile: string) {
@@ -328,7 +496,7 @@ export class Ext {
             obj = this.performance;
         }
 
-        if (obj) obj.setOrnament(Ornament.DOT);
+        if (obj) obj.setOrnament(Ornament.CHECK);
 
         log("power profile was set: '" + active_profile + "'");
     }
@@ -481,5 +649,3 @@ export class Ext {
         this.battery.setOrnament(Ornament.NONE);
     }
 }
-
-
